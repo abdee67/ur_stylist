@@ -1,0 +1,166 @@
+import 'package:dartz/dartz.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:ur_stylist/config/supabase_config.dart';
+import 'package:ur_stylist/core/errors/failures.dart';
+import 'package:ur_stylist/features/auth/data/datasources/auth_location_data_source.dart';
+import 'package:ur_stylist/features/auth/data/datasources/auth_remote_data_source.dart';
+import 'package:ur_stylist/features/auth/data/models/customer_model.dart';
+import 'package:ur_stylist/features/auth/data/models/customer_address_model.dart';
+import 'package:ur_stylist/features/auth/domain/entities/customer_address_input.dart';
+import 'package:ur_stylist/features/auth/domain/entities/customer_entity.dart';
+import 'package:ur_stylist/features/auth/domain/repositories/auth_repository.dart';
+
+class AuthRepositoryImpl implements AuthRepository {
+  final AuthRemoteDataSource remoteDataSource;
+  final AuthLocationDataSource locationDataSource;
+  AuthRepositoryImpl(this.remoteDataSource, this.locationDataSource);
+  @override
+  Future<Either<Failures, Session>> signIn(
+    String email,
+    String password,
+  ) async {
+    try {
+      // Attempt to sign in with email and password
+      final result = await remoteDataSource.signIn(email, password);
+      return Right(result);
+    } catch (e) {
+      return Left(Failures(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failures, void>> signUp(
+    String email,
+    String password,
+    String firstName,
+    String lastName,
+    String phone,
+    CustomerAddressInput address,
+  ) async {
+    try {
+      await remoteDataSource.signUp(
+        email,
+        password,
+        firstName,
+        lastName,
+        phone,
+        address,
+      );
+      return const Right(null);
+    } catch (e) {
+      return Left(Failures(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failures, void>> sendOtp(String email) async {
+    try {
+      // Try resend first (for existing users)
+      await remoteDataSource.sendOtp(email);
+
+      return const Right(null);
+    } catch (otpError) {
+      return Left(Failures(message: otpError.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failures, void>> verifyOtp(String email, String otp) async {
+    try {
+      await remoteDataSource.verifyOTP(email, otp);
+      return const Right(null);
+    } catch (e) {
+      return Left(Failures(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failures, void>> signOut() async {
+    try {
+      await remoteDataSource.signOut();
+      return const Right(null);
+    } catch (e) {
+      return Left(Failures(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failures, CustomerModel>> getCurrentCustomer() async {
+    try {
+      final user = remoteDataSource.getCurrentCustomer();
+      return Right(await user);
+    } catch (e) {
+      return Left(Failures(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failures, CustomerEntity>> updateCustomerProfile(
+    CustomerEntity client,
+  ) async {
+    try {
+      final clientModel = CustomerModel(
+        id: client.id,
+        email: client.email,
+        firstName: client.firstName,
+        lastName: client.lastName,
+        phone: client.phone,
+      );
+      await remoteDataSource.updateCustomerProfile(clientModel);
+      return Right(client);
+    } catch (e) {
+      return Left(Failures(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failures, void>> forgotPassword(String email) async {
+    try {
+      await SupabaseConfig.client.auth.resetPasswordForEmail(
+        email,
+        redirectTo: 'ursbeauty://reset-password/',
+      );
+      return const Right(null);
+    } catch (e) {
+      return Left(Failures(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failures, void>> resetPassword(
+    String email,
+    String password,
+  ) async {
+    try {
+      await remoteDataSource.resetPassword(email, password);
+      return const Right(null);
+    } catch (e) {
+      return Left(Failures(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failures, CustomerAddressInput>>
+  getCurrentLocationAddress() async {
+    try {
+      final address = await locationDataSource.getCurrentLocationAddress();
+      return Right(address);
+    } catch (e) {
+      return Left(Failures(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failures, CustomerAddressModel>> createCustomerAddress(
+    CustomerAddressInput input,
+  ) async {
+    try {
+      final saved = await remoteDataSource.createCustomerAddress(
+        input.toJson(),
+      );
+      return Right(saved);
+    } catch (e) {
+      return Left(Failures(message: e.toString()));
+    }
+  }
+}
