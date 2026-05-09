@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ur_stylist/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:ur_stylist/features/auth/onboarding/presentation/bloc/stylist_onboarding_bloc.dart';
 import 'package:ur_stylist/features/home/presentation/bloc/home_bloc.dart';
 import 'package:ur_stylist/injection_container.dart';
 import 'config/supabase_config.dart';
@@ -75,6 +76,7 @@ class _URStylistAppState extends State<URStylistApp> {
       providers: [
         // Bloc providers
         BlocProvider(create: (context) => getit<AuthBloc>()),
+        BlocProvider(create: (context) => getit<StylistOnboardingBloc>()),
         BlocProvider(create: (context) => getit<HomeBloc>()),
       ],
       child: MaterialApp.router(

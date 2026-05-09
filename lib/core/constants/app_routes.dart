@@ -1,6 +1,7 @@
-class AppRoutes{
+class AppRoutes {
   static const String initialRoute = '/';
   static const String onboardingScreen = '/onboarding';
+  static const String stylistOnboarding = '/stylist-onboarding';
   static const String loginScreen = '/login';
   static const String signupScreen = '/signup';
   static const String forgotPasswordScreen = '/forgot-password';
@@ -22,5 +23,4 @@ class AppRoutes{
   static const String privacyPolicy = '/privacy-policy';
   static const String termsAndConditions = '/terms-and-conditions';
   static const String logout = '/logout';
-
 }

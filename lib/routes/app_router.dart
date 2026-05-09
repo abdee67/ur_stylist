@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ur_stylist/core/constants/app_routes.dart';
 import 'package:ur_stylist/features/auth/presentation/screens/forgotPassword.dart';
+import 'package:ur_stylist/features/auth/onboarding/presentation/pages/onboarding_wrapper.dart';
 import 'package:ur_stylist/features/auth/presentation/screens/resetPassword.dart';
 import 'package:ur_stylist/features/auth/presentation/screens/welcome_screen.dart';
 import 'package:ur_stylist/features/auth/presentation/screens/login_screen.dart';
-import 'package:ur_stylist/features/auth/presentation/screens/signup_screen.dart';
 import 'package:ur_stylist/features/dashboard/dashboard_wrapper.dart';
 import 'package:ur_stylist/features/home/presentation/pages/home_screen.dart';
 import 'package:ur_stylist/features/profile/presentation/screens/settings_screen.dart';
-import 'package:ur_stylist/injection_container.dart';
 
 class AppRouter {
   final bool showOnboarding;
@@ -35,7 +33,11 @@ class AppRouter {
       ),
       GoRoute(
         path: AppRoutes.signupScreen,
-        builder: (_, __) => const SignupScreen(),
+        builder: (_, __) => const OnboardingWrapper(),
+      ),
+      GoRoute(
+        path: AppRoutes.stylistOnboarding,
+        builder: (_, __) => const OnboardingWrapper(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
@@ -52,8 +54,6 @@ class AppRouter {
           ),
 
           // Additional branches can be added here for other tabs
-       
-
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -80,13 +80,4 @@ class AppRouter {
       );
     },
   );
-}
-
-String? _decodeParam(String? value) {
-  if (value == null) return null;
-  try {
-    return Uri.decodeComponent(value);
-  } catch (_) {
-    return value;
-  }
 }
