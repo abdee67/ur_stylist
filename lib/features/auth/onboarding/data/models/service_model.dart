@@ -16,10 +16,8 @@ class ServiceModel extends ServiceEntity {
       id: (json['id'] ?? '').toString(),
       name: (json['name'] ?? '').toString(),
       description: json['description']?.toString(),
-      durationMinutes: int.tryParse(
-            (json['duration_minutes'] ?? '0').toString(),
-          ) ??
-          0,
+      durationMinutes:
+          int.tryParse((json['duration_minutes'] ?? '0').toString()) ?? 0,
       basePrice: double.tryParse((json['base_price'] ?? '0').toString()) ?? 0,
       minPrice: json['min_price'] == null
           ? null

@@ -14,15 +14,17 @@ class CustomerAuthForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(children: [
-      ...children,
-      const SizedBox(height: 20),
-      loading
-          ? const CircularProgressIndicator()
-          : ElevatedButton(
-              onPressed: onSubmit,
-              child: const Text('Continue'),
-            ),
-    ]);
+    return Column(
+      children: [
+        ...children,
+        const SizedBox(height: 20),
+        loading
+            ? const CircularProgressIndicator()
+            : ElevatedButton(
+                onPressed: onSubmit,
+                child: const Text('Continue'),
+              ),
+      ],
+    );
   }
 }
