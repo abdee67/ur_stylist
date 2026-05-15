@@ -27,9 +27,9 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
     final response = await _client
         .from('bookings')
         .select(
-          '*, client:users!bookings_client_id_fkey(*), service:services!bookings_service_id_fkey(*)',
+          '*, client:customers!bookings_customer_id_fkey(*), customer_address:customer_addresses!bookings_address_fkey(*), booking_services(*, service:services!booking_services_service_fkey(*))',
         )
-        .eq('stylist_id', stylistId)
+        .eq('stylist', stylistId)
         .order('scheduled_at', ascending: false);
     return (response as List)
         .map((item) => BookingModel.fromJson(Map<String, dynamic>.from(item)))
@@ -63,7 +63,7 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
     final bookings = await _client
         .from('bookings')
         .select('id')
-        .eq('stylist_id', stylistId)
+        .eq('stylist', stylistId)
         .gte('scheduled_at', startOfDay.toIso8601String());
     final stylist = await _client
         .from('stylists')
@@ -85,7 +85,7 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
     final response = await _client
         .from('bookings')
         .select('id')
-        .eq('stylist_id', stylistId)
+        .eq('stylist', stylistId)
         .eq('status', 'pending');
     return (response as List).length;
   }
@@ -142,16 +142,20 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
 
     final booking = await _client
         .from('bookings')
-        .select('stylist_id, stylist_earnings')
+        .select('stylist, stylist_earning, total_amount')
         .eq('id', bookingId)
         .single();
     final wallet = await _client
         .from('wallets')
         .select('id, balance')
-        .eq('stylist_id', booking['stylist_id'])
+        .eq('stylist_id', booking['stylist'])
         .single();
     final amount =
-        double.tryParse((booking['stylist_earnings'] ?? '0').toString()) ?? 0;
+        double.tryParse(
+          (booking['stylist_earning'] ?? booking['total_amount'] ?? '0')
+              .toString(),
+        ) ??
+        0;
     await _client.from('wallet_transactions').insert({
       'wallet_id': wallet['id'],
       'booking_id': bookingId,
@@ -181,7 +185,7 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
           table: 'bookings',
           filter: PostgresChangeFilter(
             type: PostgresChangeFilterType.eq,
-            column: 'stylist_id',
+            column: 'stylist',
             value: stylistId,
           ),
           callback: (_) => onChange(),

@@ -29,15 +29,20 @@ class BookingModel extends BookingEntity {
         _firstMap(json['users']) ??
         _firstMap(json['customer']) ??
         _firstMap(json['customers']);
+    final bookingServices = _maps(json['booking_services']);
     final service =
         _firstMap(json['service']) ??
         _firstMap(json['services']) ??
-        _firstMap(json['booking_services']);
+        _firstMap(
+          bookingServices.isEmpty ? null : bookingServices.first['service'],
+        ) ??
+        _firstMap(bookingServices.isEmpty ? null : bookingServices.first);
+    final customerAddress = _firstMap(json['customer_address']);
 
     return BookingModel(
       id: (json['id'] ?? '').toString(),
-      stylistId: (json['stylist_id'] ?? json['stylist'] ?? '').toString(),
-      clientId: (json['client_id'] ?? json['customer'])?.toString(),
+      stylistId: (json['stylist'] ?? json['stylist_id'] ?? '').toString(),
+      clientId: (json['customer'] ?? json['client_id'])?.toString(),
       clientName:
           (user?['name'] ??
                   '${user?['first_name'] ?? ''} ${user?['last_name'] ?? ''}'
@@ -47,28 +52,25 @@ class BookingModel extends BookingEntity {
               .ifEmpty('Client'),
       clientImageUrl: (user?['profile_image_url'] ?? user?['image_url'])
           ?.toString(),
-      serviceName: (service?['name'] ?? service?['service_name'] ?? 'Service')
-          .toString(),
-      durationMinutes:
-          int.tryParse(
-            (service?['duration_minutes'] ??
-                    service?['duration_at_booking'] ??
-                    json['duration_minutes'] ??
-                    '0')
-                .toString(),
-          ) ??
-          0,
+      serviceName: _serviceName(bookingServices, service),
+      durationMinutes: _durationMinutes(bookingServices, service, json),
       status: _statusFrom((json['status'] ?? 'pending').toString()),
       scheduledAt: _date(json['scheduled_at']) ?? DateTime.now(),
-      address: (json['address_text'] ?? json['address'] ?? 'Client location')
-          .toString(),
-      latitude: double.tryParse((json['latitude'] ?? '').toString()),
-      longitude: double.tryParse((json['longitude'] ?? '').toString()),
+      address: _addressText(customerAddress, json),
+      latitude: double.tryParse(
+        (customerAddress?['latitude'] ?? json['latitude'] ?? '').toString(),
+      ),
+      longitude: double.tryParse(
+        (customerAddress?['longitude'] ?? json['longitude'] ?? '').toString(),
+      ),
       totalAmount:
           double.tryParse((json['total_amount'] ?? '0').toString()) ?? 0,
       stylistEarnings:
           double.tryParse(
-            (json['stylist_earnings'] ?? json['total_amount'] ?? '0')
+            (json['stylist_earning'] ??
+                    json['stylist_earnings'] ??
+                    json['total_amount'] ??
+                    '0')
                 .toString(),
           ) ??
           0,
@@ -108,6 +110,75 @@ class BookingModel extends BookingEntity {
       return Map<String, dynamic>.from(value.first as Map);
     }
     return null;
+  }
+
+  static List<Map<String, dynamic>> _maps(dynamic value) {
+    if (value is! List) return const [];
+    return value
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
+  static String _serviceName(
+    List<Map<String, dynamic>> bookingServices,
+    Map<String, dynamic>? fallback,
+  ) {
+    final names = bookingServices
+        .map((item) {
+          final service = _firstMap(item['service']);
+          return (item['service_name'] ?? service?['name'])?.toString();
+        })
+        .where((name) => name != null && name.trim().isNotEmpty)
+        .cast<String>()
+        .toList();
+    if (names.isNotEmpty) return names.join(', ');
+    return (fallback?['name'] ?? fallback?['service_name'] ?? 'Service')
+        .toString();
+  }
+
+  static int _durationMinutes(
+    List<Map<String, dynamic>> bookingServices,
+    Map<String, dynamic>? fallback,
+    Map<String, dynamic> booking,
+  ) {
+    var total = 0;
+    for (final item in bookingServices) {
+      total +=
+          int.tryParse((item['duration_at_booking'] ?? '0').toString()) ?? 0;
+    }
+    if (total > 0) return total;
+    return int.tryParse(
+          (fallback?['duration_minutes'] ??
+                  fallback?['duration_at_booking'] ??
+                  booking['duration_minutes'] ??
+                  '0')
+              .toString(),
+        ) ??
+        0;
+  }
+
+  static String _addressText(
+    Map<String, dynamic>? customerAddress,
+    Map<String, dynamic> booking,
+  ) {
+    if (customerAddress != null) {
+      final parts =
+          [
+                customerAddress['address_line1'],
+                customerAddress['address_line2'],
+                customerAddress['city'],
+                customerAddress['state'],
+              ]
+              .where(
+                (part) => part != null && part.toString().trim().isNotEmpty,
+              )
+              .map((part) => part.toString().trim())
+              .toList();
+      if (parts.isNotEmpty) return parts.join(', ');
+    }
+    return (booking['address_text'] ?? booking['address'] ?? 'Client location')
+        .toString();
   }
 }
 
