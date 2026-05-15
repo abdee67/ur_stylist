@@ -41,16 +41,19 @@ alter table public.bookings
   add column if not exists completed_at timestamptz,
   add column if not exists cancelled_at timestamptz;
 
-do $$
-begin
-  if not exists (
-    select 1 from pg_constraint where conname = 'bookings_dashboard_status_check'
-  ) then
-    alter table public.bookings
-      add constraint bookings_dashboard_status_check
-      check (status in ('pending', 'confirmed', 'in_progress', 'completed', 'cancelled', 'missed'));
-  end if;
-end $$;
+alter table public.bookings
+  drop constraint if exists bookings_status_check;
+
+alter table public.bookings
+  drop constraint if exists bookings_dashboard_status_check;
+
+alter table public.bookings
+  add constraint bookings_status_check
+  check (status in (
+    'pending', 'confirmed', 'in_progress',
+    'completed', 'cancelled', 'missed',
+    'rescheduled', 'no_show'
+  ));
 
 do $$
 begin
@@ -77,7 +80,12 @@ alter table public.stylists
 
 alter table public.stylists
   add constraint stylists_onboarding_status_check
-  check (onboarding_status in ('pending', 'approved', 'rejected', 'incomplete', 'suspended'));
+  check (onboarding_status in (
+    'basic_info', 'email_verified', 'kyc_submitted',
+    'professional_submitted', 'wallet_done',
+    'pending_review', 'approved', 'rejected',
+    'suspended'
+  ));
 
 create table if not exists public.wallet_transactions (
   id uuid default gen_random_uuid() primary key,
