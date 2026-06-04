@@ -168,7 +168,7 @@ class _Page4WalletState extends State<Page4Wallet> {
                         );
                       }
                     : null,
-                child: const Text('Submit for review'),
+                child: const Text('Continue to password'),
               ),
             ),
           ],

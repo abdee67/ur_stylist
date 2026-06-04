@@ -7,12 +7,19 @@ class WizardProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final labels = ['Basic Info', 'Identity', 'Professional', 'Wallet'];
+    final labels = [
+      'Basic Info',
+      'Identity',
+      'Professional',
+      'Wallet',
+      'Password',
+    ];
     final visibleStep = switch (currentStep) {
-      0 => 0,
-      1 || 2 => 1,
+      0 || 1 => 0,
+      2 => 1,
       3 => 2,
-      _ => 3,
+      4 => 3,
+      _ => 4,
     };
 
     return Row(

@@ -12,6 +12,7 @@ import 'package:ur_stylist/features/auth/onboarding/presentation/pages/page1b_em
 import 'package:ur_stylist/features/auth/onboarding/presentation/pages/page2_kyc.dart';
 import 'package:ur_stylist/features/auth/onboarding/presentation/pages/page3_professional.dart';
 import 'package:ur_stylist/features/auth/onboarding/presentation/pages/page4_wallet.dart';
+import 'package:ur_stylist/features/auth/onboarding/presentation/pages/page5_create_password.dart';
 import 'package:ur_stylist/features/auth/onboarding/presentation/widgets/wizard_progress_bar.dart';
 
 class OnboardingWrapper extends StatefulWidget {
@@ -115,6 +116,8 @@ class _OnboardingWrapperState extends State<OnboardingWrapper> {
         return const Page3Professional();
       case 4:
         return const Page4Wallet();
+      case 5:
+        return const Page5CreatePassword();
       default:
         return const Page1BasicInfo();
     }

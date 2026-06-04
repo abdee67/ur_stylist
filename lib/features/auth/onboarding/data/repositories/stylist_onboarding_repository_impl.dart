@@ -148,6 +148,22 @@ class StylistOnboardingRepositoryImpl implements StylistOnboardingRepository {
   }
 
   @override
+  Future<Either<Failures, void>> savePassword({
+    required String stylistId,
+    required String password,
+  }) async {
+    try {
+      await remoteDataSource.savePassword(
+        stylistId: stylistId,
+        password: password,
+      );
+      return const Right(null);
+    } catch (e) {
+      return Left(Failures(message: _friendlyMessage(e)));
+    }
+  }
+
+  @override
   Future<Either<Failures, void>> signOut() async {
     try {
       await remoteDataSource.signOut();
@@ -171,6 +187,9 @@ class StylistOnboardingRepositoryImpl implements StylistOnboardingRepository {
     }
     if (lower.contains('duplicate')) {
       return 'This information already exists. Please sign in or continue onboarding.';
+    }
+    if (lower.contains('password')) {
+      return 'We could not save that password. Use at least 8 characters with a mix of letters and numbers.';
     }
     return text.isEmpty ? 'Something went wrong. Please try again.' : text;
   }

@@ -292,7 +292,7 @@ class StylistOnboardingRemoteDataSourceImpl
     String? cardLast4,
     String? cardType,
   }) async {
-    await _client.from('stylist_payout_accounts').insert({
+    final payoutPayload = {
       'stylist_id': stylistId,
       'bank_name': bankName,
       'account_holder_name': accountHolderName,
@@ -301,7 +301,22 @@ class StylistOnboardingRemoteDataSourceImpl
         if (cardLast4 != null) 'card_last4': cardLast4,
         if (cardType != null) 'card_type': cardType,
       },
-    });
+      'is_primary': true,
+    };
+    final existingPayout = await _client
+        .from('stylist_payout_accounts')
+        .select('id')
+        .eq('stylist_id', stylistId)
+        .eq('is_primary', true)
+        .maybeSingle();
+    if (existingPayout == null) {
+      await _client.from('stylist_payout_accounts').insert(payoutPayload);
+    } else {
+      await _client
+          .from('stylist_payout_accounts')
+          .update(payoutPayload)
+          .eq('id', existingPayout['id']);
+    }
 
     await _client.from('wallets').upsert({
       'stylist_id': stylistId,
@@ -311,9 +326,25 @@ class StylistOnboardingRemoteDataSourceImpl
 
     await _client
         .from('stylists')
-        .update({'onboarding_status': 'pending_review'})
+        .update({'onboarding_status': 'wallet_done'})
         .eq('id', stylistId);
+  }
 
+  @override
+  Future<void> savePassword({
+    required String stylistId,
+    required String password,
+  }) async {
+    final userId = _requireUserId();
+    await _client.auth.updateUser(UserAttributes(password: password));
+    await _client
+        .from('stylists')
+        .update({
+          'onboarding_status': 'pending_review',
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', stylistId)
+        .eq('user_id', userId);
     // TODO: trigger push notification or Edge Function for admin review queue.
   }
 
@@ -465,6 +496,8 @@ class StylistOnboardingRemoteDataSourceImpl
         return 3;
       case 'professional_submitted':
         return 4;
+      case 'wallet_done':
+        return 5;
       default:
         return 0;
     }
@@ -473,7 +506,6 @@ class StylistOnboardingRemoteDataSourceImpl
   OnboardingFlowStatus _flowForStatus(String status) {
     switch (status) {
       case 'pending_review':
-      case 'wallet_done':
         return OnboardingFlowStatus.pendingReview;
       case 'rejected':
         return OnboardingFlowStatus.rejected;

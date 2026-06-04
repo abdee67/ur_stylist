@@ -9,6 +9,7 @@ import 'package:ur_stylist/features/auth/onboarding/domain/usecases/resend_styli
 import 'package:ur_stylist/features/auth/onboarding/domain/usecases/save_basic_info.dart';
 import 'package:ur_stylist/features/auth/onboarding/domain/usecases/save_kyc.dart';
 import 'package:ur_stylist/features/auth/onboarding/domain/usecases/save_professional_details.dart';
+import 'package:ur_stylist/features/auth/onboarding/domain/usecases/save_stylist_password.dart';
 import 'package:ur_stylist/features/auth/onboarding/domain/usecases/sign_out_stylist.dart';
 import 'package:ur_stylist/features/auth/onboarding/domain/usecases/submit_wallet.dart';
 import 'package:ur_stylist/features/auth/onboarding/domain/usecases/verify_stylist_otp.dart';
@@ -25,6 +26,7 @@ class StylistOnboardingBloc
   final GetActiveServices getActiveServices;
   final SaveProfessionalDetails saveProfessionalDetails;
   final SubmitWallet submitWallet;
+  final SaveStylistPassword saveStylistPassword;
   final SignOutStylist signOutStylist;
 
   StylistOnboardingBloc(
@@ -36,6 +38,7 @@ class StylistOnboardingBloc
     this.getActiveServices,
     this.saveProfessionalDetails,
     this.submitWallet,
+    this.saveStylistPassword,
     this.signOutStylist,
   ) : super(StylistOnboardingState.initial()) {
     on<OnboardingStarted>(_onStarted);
@@ -95,6 +98,7 @@ class StylistOnboardingBloc
     on<ProfessionalDetailsSubmitted>(_onProfessionalSubmitted);
     on<WalletInfoChanged>(_onWalletChanged);
     on<WalletSubmitted>(_onWalletSubmitted);
+    on<PasswordSubmitted>(_onPasswordSubmitted);
     on<SubmittedSignOutRequested>(_onSignOutRequested);
     on<RejectedResubmitRequested>((event, emit) {
       emit(
@@ -554,6 +558,67 @@ class StylistOnboardingBloc
       accountNumber: data.accountNumber!.trim(),
       cardLast4: data.cardLast4,
       cardType: data.cardType,
+    );
+    result.fold(
+      (failure) => emit(
+        StylistOnboardingState(
+          data.copyWith(isLoading: false, errorMessage: failure.message),
+        ),
+      ),
+      (_) => emit(
+        StylistOnboardingState(
+          data.copyWith(
+            isLoading: false,
+            currentStep: 5,
+            warningMessage: 'Create your password to finish submission.',
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _onPasswordSubmitted(
+    PasswordSubmitted event,
+    Emitter<StylistOnboardingState> emit,
+  ) async {
+    final data = state.data;
+    final password = event.password.trim();
+    final confirmPassword = event.confirmPassword.trim();
+    if (data.stylistId == null) {
+      emit(
+        StylistOnboardingState(
+          data.copyWith(errorMessage: 'Please complete wallet setup first.'),
+        ),
+      );
+      return;
+    }
+    if (password.length < 8 ||
+        !RegExp(r'[A-Za-z]').hasMatch(password) ||
+        !RegExp(r'\d').hasMatch(password)) {
+      emit(
+        StylistOnboardingState(
+          data.copyWith(
+            errorMessage: 'Use at least 8 characters with letters and numbers.',
+          ),
+        ),
+      );
+      return;
+    }
+    if (password != confirmPassword) {
+      emit(
+        StylistOnboardingState(
+          data.copyWith(errorMessage: 'The passwords do not match.'),
+        ),
+      );
+      return;
+    }
+
+    emit(
+      StylistOnboardingState(data.copyWith(isLoading: true, clearError: true)),
+    );
+    final result = await saveStylistPassword(
+      stylistId: data.stylistId!,
+      password: password,
     );
     result.fold(
       (failure) => emit(

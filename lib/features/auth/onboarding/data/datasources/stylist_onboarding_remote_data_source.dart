@@ -47,5 +47,10 @@ abstract class StylistOnboardingRemoteDataSource {
     String? cardType,
   });
 
+  Future<void> savePassword({
+    required String stylistId,
+    required String password,
+  });
+
   Future<void> signOut();
 }

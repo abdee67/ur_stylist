@@ -27,6 +27,7 @@ import 'package:ur_stylist/features/auth/onboarding/domain/usecases/resend_styli
 import 'package:ur_stylist/features/auth/onboarding/domain/usecases/save_basic_info.dart';
 import 'package:ur_stylist/features/auth/onboarding/domain/usecases/save_kyc.dart';
 import 'package:ur_stylist/features/auth/onboarding/domain/usecases/save_professional_details.dart';
+import 'package:ur_stylist/features/auth/onboarding/domain/usecases/save_stylist_password.dart';
 import 'package:ur_stylist/features/auth/onboarding/domain/usecases/sign_out_stylist.dart';
 import 'package:ur_stylist/features/auth/onboarding/domain/usecases/submit_wallet.dart';
 import 'package:ur_stylist/features/auth/onboarding/domain/usecases/verify_stylist_otp.dart';
@@ -117,6 +118,7 @@ void initDependency() {
   getit.registerLazySingleton(() => GetActiveServices(getit()));
   getit.registerLazySingleton(() => SaveProfessionalDetails(getit()));
   getit.registerLazySingleton(() => SubmitWallet(getit()));
+  getit.registerLazySingleton(() => SaveStylistPassword(getit()));
   getit.registerLazySingleton(() => SignOutStylist(getit()));
   getit.registerLazySingleton(() => LoadHomeDashboard(getit()));
   getit.registerLazySingleton(() => AcceptBooking(getit()));
@@ -153,6 +155,7 @@ void initDependency() {
   );
   getit.registerFactory(
     () => StylistOnboardingBloc(
+      getit(),
       getit(),
       getit(),
       getit(),
