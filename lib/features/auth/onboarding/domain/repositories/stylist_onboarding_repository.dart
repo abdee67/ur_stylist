@@ -49,5 +49,10 @@ abstract class StylistOnboardingRepository {
     String? cardType,
   });
 
+  Future<Either<Failures, void>> savePassword({
+    required String stylistId,
+    required String password,
+  });
+
   Future<Either<Failures, void>> signOut();
 }

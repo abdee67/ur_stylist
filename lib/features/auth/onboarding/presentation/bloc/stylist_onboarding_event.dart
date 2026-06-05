@@ -184,6 +184,19 @@ class WalletSubmitted extends StylistOnboardingEvent {
   const WalletSubmitted();
 }
 
+class PasswordSubmitted extends StylistOnboardingEvent {
+  final String password;
+  final String confirmPassword;
+
+  const PasswordSubmitted({
+    required this.password,
+    required this.confirmPassword,
+  });
+
+  @override
+  List<Object?> get props => [password, confirmPassword];
+}
+
 class SubmittedSignOutRequested extends StylistOnboardingEvent {
   const SubmittedSignOutRequested();
 }
