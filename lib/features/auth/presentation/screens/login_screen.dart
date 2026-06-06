@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:ur_stylist/config/supabase_config.dart';
 import 'package:ur_stylist/core/constants/app_routes.dart';
 import 'package:ur_stylist/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:ur_stylist/features/auth/presentation/bloc/auth_event.dart';
@@ -19,6 +20,27 @@ class _LoginScreenState extends State<LoginScreen> {
   final _otpController = TextEditingController();
   bool _obscurePassword = true;
   bool _otpMode = false;
+  bool _isCheckingSession = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkStartupSession();
+  }
+
+  Future<void> _checkStartupSession() async {
+    await Future<void>.delayed(Duration.zero);
+    if (!mounted) return;
+
+    if (SupabaseConfig.client.auth.currentSession != null) {
+      context.go(AppRoutes.stylistOnboarding);
+      return;
+    }
+
+    setState(() {
+      _isCheckingSession = false;
+    });
+  }
 
   @override
   void dispose() {
@@ -30,6 +52,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isCheckingSession) {
+      return const _SessionCheckingSplash();
+    }
+
     return Scaffold(
       backgroundColor: Colors.pink[50],
       body: BlocConsumer<AuthBloc, AuthState>(
@@ -283,7 +309,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 style: TextStyle(color: Colors.grey[600]),
                               ),
                               TextButton(
-                                onPressed: () => context.go('/signup'),
+                                onPressed: () =>
+                                    context.go(AppRoutes.signupScreen),
                                 child: Text(
                                   'Sign Up',
                                   style: TextStyle(
@@ -303,6 +330,46 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _SessionCheckingSplash extends StatelessWidget {
+  const _SessionCheckingSplash();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.pink[50],
+      body: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.pink[100]!, Colors.purple[100]!],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset('assets/images/logo.png', height: 120),
+              const SizedBox(height: 28),
+              CircularProgressIndicator(color: Colors.purple[600]),
+              const SizedBox(height: 18),
+              Text(
+                'Checking your session...',
+                style: TextStyle(
+                  color: Colors.purple[800],
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
