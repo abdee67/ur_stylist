@@ -131,47 +131,10 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
 
   @override
   Future<void> completeBooking(String bookingId) async {
-    await _client
-        .from('bookings')
-        .update({
-          'status': 'completed',
-          'completed_at': DateTime.now().toIso8601String(),
-          'updated_at': DateTime.now().toIso8601String(),
-        })
-        .eq('id', bookingId);
-
-    final booking = await _client
-        .from('bookings')
-        .select('stylist, stylist_earning, total_amount')
-        .eq('id', bookingId)
-        .single();
-    final wallet = await _client
-        .from('wallets')
-        .select('id, balance')
-        .eq('stylist_id', booking['stylist'])
-        .single();
-    final amount =
-        double.tryParse(
-          (booking['stylist_earning'] ?? booking['total_amount'] ?? '0')
-              .toString(),
-        ) ??
-        0;
-    await _client.from('wallet_transactions').insert({
-      'wallet_id': wallet['id'],
-      'booking_id': bookingId,
-      'transaction_type': 'credit',
-      'amount': amount,
-      'source': 'booking_earning',
-    });
-    await _client
-        .from('wallets')
-        .update({
-          'balance':
-              (double.tryParse((wallet['balance'] ?? '0').toString()) ?? 0) +
-              amount,
-          'updated_at': DateTime.now().toIso8601String(),
-        })
-        .eq('id', wallet['id']);
+    await _client.rpc(
+      'complete_stylist_booking',
+      params: {'p_booking_id': bookingId},
+    );
     // TODO: trigger push via FCM/Supabase Edge Function.
   }
 
