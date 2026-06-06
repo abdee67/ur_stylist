@@ -41,11 +41,6 @@ class WalletPage extends StatelessWidget {
               return ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  const Text(
-                    'Wallet',
-                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
-                  ),
-                  const SizedBox(height: 16),
                   BalanceCard(
                     wallet: wallet,
                     onDeposit: () =>
