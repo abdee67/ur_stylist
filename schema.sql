@@ -51,6 +51,23 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
 
 
 
+CREATE OR REPLACE FUNCTION "public"."activate_stylist_on_deposit"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+begin
+  if new.deposit_verified = true and old.deposit_verified = false then
+    update public.stylists
+    set is_verified = true
+    where id = new.stylist_id;
+  end if;
+  return new;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."activate_stylist_on_deposit"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."calculate_refund_quote"("p_payment_id" "uuid") RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -563,6 +580,21 @@ $$;
 ALTER FUNCTION "public"."debit_stylist_wallet"("p_stylist_id" "uuid", "p_booking_id" "uuid", "p_payment_id" "uuid", "p_amount" numeric, "p_currency" "text", "p_source" "text", "p_reference" "text", "p_metadata" "jsonb") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."expire_pending_bookings"() RETURNS "void"
+    LANGUAGE "plpgsql"
+    AS $$
+begin
+  update public.bookings
+  set status = 'missed', cancelled_by = 'system', updated_at = now()
+  where status = 'pending'
+    and accept_deadline < now();
+end;
+$$;
+
+
+ALTER FUNCTION "public"."expire_pending_bookings"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."handle_new_customer_signup"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public', 'auth'
@@ -891,6 +923,21 @@ $$;
 ALTER FUNCTION "public"."reschedule_booking"("p_booking_id" "uuid", "p_new_stylist_id" "uuid", "p_new_scheduled_at" timestamp with time zone) OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."set_accept_deadline"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+begin
+  if new.accept_deadline is null then
+    new.accept_deadline := now() + interval '15 minutes';
+  end if;
+  return new;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."set_accept_deadline"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."set_current_timestamp_updated_at"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     AS $$
@@ -969,7 +1016,21 @@ CREATE TABLE IF NOT EXISTS "public"."bookings" (
     "refund_amount" double precision DEFAULT '0'::double precision,
     "commission_amount" real,
     "stylist_earning" real,
-    CONSTRAINT "bookings_status_check" CHECK (("status" = ANY (ARRAY['pending'::"text", 'confirmed'::"text", 'completed'::"text", 'cancelled'::"text", 'rescheduled'::"text"])))
+    "client_id" "uuid",
+    "stylist_id" "uuid",
+    "service_id" "uuid",
+    "latitude" numeric(10,8),
+    "longitude" numeric(11,8),
+    "platform_fee" numeric(10,2) DEFAULT 0 NOT NULL,
+    "stylist_earnings" numeric(10,2) DEFAULT 0 NOT NULL,
+    "cancelled_by" "text",
+    "cancellation_reason" "text",
+    "accept_deadline" timestamp with time zone,
+    "started_at" timestamp with time zone,
+    "completed_at" timestamp with time zone,
+    "cancelled_at" timestamp with time zone,
+    CONSTRAINT "bookings_cancelled_by_check" CHECK ((("cancelled_by" IS NULL) OR ("cancelled_by" = ANY (ARRAY['client'::"text", 'stylist'::"text", 'system'::"text"])))),
+    CONSTRAINT "bookings_status_check" CHECK (("status" = ANY (ARRAY['pending'::"text", 'confirmed'::"text", 'in_progress'::"text", 'completed'::"text", 'cancelled'::"text", 'missed'::"text", 'rescheduled'::"text", 'no_show'::"text"])))
 );
 
 
@@ -1222,6 +1283,47 @@ CREATE TABLE IF NOT EXISTS "public"."services" (
 ALTER TABLE "public"."services" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."stylist_documents" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "stylist_id" "uuid" NOT NULL,
+    "type" "text" NOT NULL,
+    "file_url" "text" NOT NULL,
+    "verified" boolean DEFAULT false,
+    "uploaded_at" timestamp with time zone DEFAULT "now"(),
+    CONSTRAINT "stylist_documents_type_check" CHECK (("type" = ANY (ARRAY['national_id_front'::"text", 'national_id_back'::"text", 'selfie'::"text", 'license'::"text"])))
+);
+
+
+ALTER TABLE "public"."stylist_documents" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."stylist_payout_accounts" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "stylist_id" "uuid" NOT NULL,
+    "account_holder_name" "text" NOT NULL,
+    "bank_name" "text" NOT NULL,
+    "account_number" "text" NOT NULL,
+    "metadata" "jsonb" DEFAULT '{}'::"jsonb" NOT NULL,
+    "is_primary" boolean DEFAULT true,
+    "created_at" timestamp with time zone DEFAULT "now"()
+);
+
+
+ALTER TABLE "public"."stylist_payout_accounts" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."stylist_portfolio" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "stylist_id" "uuid" NOT NULL,
+    "image_url" "text" NOT NULL,
+    "caption" "text",
+    "created_at" timestamp with time zone DEFAULT "now"()
+);
+
+
+ALTER TABLE "public"."stylist_portfolio" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."stylists" (
     "id" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
     "business_name" "text" NOT NULL,
@@ -1234,7 +1336,13 @@ CREATE TABLE IF NOT EXISTS "public"."stylists" (
     "longitude" numeric(11,8),
     "created_at" timestamp with time zone DEFAULT "now"(),
     "updated_at" timestamp with time zone DEFAULT "now"(),
-    "image_url" "text"
+    "image_url" "text",
+    "user_id" "uuid",
+    "onboarding_status" "text" DEFAULT 'basic_info'::"text",
+    "years_experience" integer,
+    "rejection_reason" "text",
+    "preferences" "jsonb" DEFAULT '{}'::"jsonb" NOT NULL,
+    CONSTRAINT "stylists_onboarding_status_check" CHECK (("onboarding_status" = ANY (ARRAY['basic_info'::"text", 'email_verified'::"text", 'kyc_submitted'::"text", 'professional_submitted'::"text", 'wallet_done'::"text", 'pending_review'::"text", 'approved'::"text", 'rejected'::"text", 'suspended'::"text"])))
 );
 
 
@@ -1305,6 +1413,10 @@ CREATE TABLE IF NOT EXISTS "public"."wallets" (
     "currency" "text" DEFAULT 'etb'::"text" NOT NULL,
     "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
     "updated_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
+    "security_deposit" numeric(10,2) DEFAULT 0 NOT NULL,
+    "minimum_deposit" numeric(10,2) DEFAULT 500 NOT NULL,
+    "deposit_verified" boolean DEFAULT false,
+    "is_active" boolean DEFAULT false,
     CONSTRAINT "wallets_currency_check" CHECK (("char_length"(TRIM(BOTH FROM "currency")) > 0))
 );
 
@@ -1417,6 +1529,21 @@ ALTER TABLE ONLY "public"."services"
 
 
 
+ALTER TABLE ONLY "public"."stylist_documents"
+    ADD CONSTRAINT "stylist_documents_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."stylist_payout_accounts"
+    ADD CONSTRAINT "stylist_payout_accounts_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."stylist_portfolio"
+    ADD CONSTRAINT "stylist_portfolio_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."users"
     ADD CONSTRAINT "users_email_key" UNIQUE ("email");
 
@@ -1526,6 +1653,26 @@ CREATE INDEX "idx_wallets_stylist_id" ON "public"."wallets" USING "btree" ("styl
 
 
 
+CREATE UNIQUE INDEX "stylists_availability_stylist_day_key" ON "public"."stylists_availability" USING "btree" ("stylists_id", "day_of_week");
+
+
+
+CREATE UNIQUE INDEX "stylists_services_stylist_service_key" ON "public"."stylists_services" USING "btree" ("stylists_id", "service_id");
+
+
+
+CREATE UNIQUE INDEX "stylists_user_id_key" ON "public"."stylists" USING "btree" ("user_id") WHERE ("user_id" IS NOT NULL);
+
+
+
+CREATE OR REPLACE TRIGGER "trg_activate_on_deposit" AFTER UPDATE ON "public"."wallets" FOR EACH ROW EXECUTE FUNCTION "public"."activate_stylist_on_deposit"();
+
+
+
+CREATE OR REPLACE TRIGGER "trg_booking_deadline" BEFORE INSERT ON "public"."bookings" FOR EACH ROW EXECUTE FUNCTION "public"."set_accept_deadline"();
+
+
+
 CREATE OR REPLACE TRIGGER "trg_payments_set_updated_at" BEFORE UPDATE ON "public"."payments" FOR EACH ROW EXECUTE FUNCTION "public"."set_current_timestamp_updated_at"();
 
 
@@ -1559,12 +1706,27 @@ ALTER TABLE ONLY "public"."bookings"
 
 
 ALTER TABLE ONLY "public"."bookings"
+    ADD CONSTRAINT "bookings_client_id_fkey" FOREIGN KEY ("client_id") REFERENCES "public"."users"("id");
+
+
+
+ALTER TABLE ONLY "public"."bookings"
     ADD CONSTRAINT "bookings_customer_id_fkey" FOREIGN KEY ("customer") REFERENCES "public"."customers"("id");
 
 
 
 ALTER TABLE ONLY "public"."bookings"
     ADD CONSTRAINT "bookings_rescheduled_from_fkey" FOREIGN KEY ("rescheduled_from") REFERENCES "public"."bookings"("id");
+
+
+
+ALTER TABLE ONLY "public"."bookings"
+    ADD CONSTRAINT "bookings_service_id_fkey" FOREIGN KEY ("service_id") REFERENCES "public"."services"("id");
+
+
+
+ALTER TABLE ONLY "public"."bookings"
+    ADD CONSTRAINT "bookings_stylist_id_fkey" FOREIGN KEY ("stylist_id") REFERENCES "public"."stylists"("id");
 
 
 
@@ -1655,6 +1817,26 @@ ALTER TABLE ONLY "public"."reviews"
 
 ALTER TABLE ONLY "public"."services"
     ADD CONSTRAINT "services_category_id_fkey" FOREIGN KEY ("category_id") REFERENCES "public"."service_categories"("id");
+
+
+
+ALTER TABLE ONLY "public"."stylist_documents"
+    ADD CONSTRAINT "stylist_documents_stylist_id_fkey" FOREIGN KEY ("stylist_id") REFERENCES "public"."stylists"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."stylist_payout_accounts"
+    ADD CONSTRAINT "stylist_payout_accounts_stylist_id_fkey" FOREIGN KEY ("stylist_id") REFERENCES "public"."stylists"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."stylist_portfolio"
+    ADD CONSTRAINT "stylist_portfolio_stylist_id_fkey" FOREIGN KEY ("stylist_id") REFERENCES "public"."stylists"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."stylists"
+    ADD CONSTRAINT "stylists_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
 
 
 
@@ -1849,6 +2031,9 @@ ALTER TABLE "public"."booking_cancellation_policies" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."booking_services" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "public"."bookings" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "public"."cancellation_policies" ENABLE ROW LEVEL SECURITY;
 
 
@@ -1898,6 +2083,104 @@ ALTER TABLE "public"."service_categories" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."services" ENABLE ROW LEVEL SECURITY;
 
 
+CREATE POLICY "stylist_availability_self" ON "public"."stylists_availability" USING (("stylists_id" IN ( SELECT "stylists"."id"
+   FROM "public"."stylists"
+  WHERE ("stylists"."user_id" = "auth"."uid"())))) WITH CHECK (("stylists_id" IN ( SELECT "stylists"."id"
+   FROM "public"."stylists"
+  WHERE ("stylists"."user_id" = "auth"."uid"()))));
+
+
+
+ALTER TABLE "public"."stylist_documents" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "stylist_documents_self" ON "public"."stylist_documents" USING (("stylist_id" IN ( SELECT "stylists"."id"
+   FROM "public"."stylists"
+  WHERE ("stylists"."user_id" = "auth"."uid"())))) WITH CHECK (("stylist_id" IN ( SELECT "stylists"."id"
+   FROM "public"."stylists"
+  WHERE ("stylists"."user_id" = "auth"."uid"()))));
+
+
+
+ALTER TABLE "public"."stylist_payout_accounts" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "stylist_payout_self" ON "public"."stylist_payout_accounts" USING (("stylist_id" IN ( SELECT "stylists"."id"
+   FROM "public"."stylists"
+  WHERE ("stylists"."user_id" = "auth"."uid"())))) WITH CHECK (("stylist_id" IN ( SELECT "stylists"."id"
+   FROM "public"."stylists"
+  WHERE ("stylists"."user_id" = "auth"."uid"()))));
+
+
+
+CREATE POLICY "stylist_payouts_self" ON "public"."payouts" USING (("wallet_id" IN ( SELECT "w"."id"
+   FROM ("public"."wallets" "w"
+     JOIN "public"."stylists" "s" ON (("s"."id" = "w"."stylist_id")))
+  WHERE ("s"."user_id" = "auth"."uid"())))) WITH CHECK (("wallet_id" IN ( SELECT "w"."id"
+   FROM ("public"."wallets" "w"
+     JOIN "public"."stylists" "s" ON (("s"."id" = "w"."stylist_id")))
+  WHERE ("s"."user_id" = "auth"."uid"()))));
+
+
+
+ALTER TABLE "public"."stylist_portfolio" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "stylist_portfolio_self" ON "public"."stylist_portfolio" USING (("stylist_id" IN ( SELECT "stylists"."id"
+   FROM "public"."stylists"
+  WHERE ("stylists"."user_id" = "auth"."uid"())))) WITH CHECK (("stylist_id" IN ( SELECT "stylists"."id"
+   FROM "public"."stylists"
+  WHERE ("stylists"."user_id" = "auth"."uid"()))));
+
+
+
+CREATE POLICY "stylist_sees_own_bookings" ON "public"."bookings" FOR SELECT USING (("stylist_id" IN ( SELECT "stylists"."id"
+   FROM "public"."stylists"
+  WHERE ("stylists"."user_id" = "auth"."uid"()))));
+
+
+
+CREATE POLICY "stylist_self_insert" ON "public"."stylists" FOR INSERT WITH CHECK (("user_id" = "auth"."uid"()));
+
+
+
+CREATE POLICY "stylist_self_select" ON "public"."stylists" FOR SELECT USING (("user_id" = "auth"."uid"()));
+
+
+
+CREATE POLICY "stylist_self_update" ON "public"."stylists" FOR UPDATE USING (("user_id" = "auth"."uid"())) WITH CHECK ((("user_id" = "auth"."uid"()) AND ("is_verified" = false)));
+
+
+
+CREATE POLICY "stylist_services_self" ON "public"."stylists_services" USING (("stylists_id" IN ( SELECT "stylists"."id"
+   FROM "public"."stylists"
+  WHERE ("stylists"."user_id" = "auth"."uid"())))) WITH CHECK (("stylists_id" IN ( SELECT "stylists"."id"
+   FROM "public"."stylists"
+  WHERE ("stylists"."user_id" = "auth"."uid"()))));
+
+
+
+CREATE POLICY "stylist_updates_own_bookings" ON "public"."bookings" FOR UPDATE USING (("stylist_id" IN ( SELECT "stylists"."id"
+   FROM "public"."stylists"
+  WHERE ("stylists"."user_id" = "auth"."uid"())))) WITH CHECK ((("stylist_id" IN ( SELECT "stylists"."id"
+   FROM "public"."stylists"
+  WHERE ("stylists"."user_id" = "auth"."uid"()))) AND ("status" = ANY (ARRAY['confirmed'::"text", 'in_progress'::"text", 'completed'::"text", 'cancelled'::"text"])) AND (COALESCE("cancelled_by", 'stylist'::"text") <> 'client'::"text")));
+
+
+
+CREATE POLICY "stylist_wallet_transactions_self" ON "public"."wallet_transactions" USING (("wallet_id" IN ( SELECT "w"."id"
+   FROM ("public"."wallets" "w"
+     JOIN "public"."stylists" "s" ON (("s"."id" = "w"."stylist_id")))
+  WHERE ("s"."user_id" = "auth"."uid"())))) WITH CHECK (("wallet_id" IN ( SELECT "w"."id"
+   FROM ("public"."wallets" "w"
+     JOIN "public"."stylists" "s" ON (("s"."id" = "w"."stylist_id")))
+  WHERE ("s"."user_id" = "auth"."uid"()))));
+
+
+
+ALTER TABLE "public"."stylists" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "public"."stylists_availability" ENABLE ROW LEVEL SECURITY;
 
 
@@ -1905,6 +2188,18 @@ ALTER TABLE "public"."stylists_services" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."users" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "wallet_self_insert" ON "public"."wallets" FOR INSERT WITH CHECK (("stylist_id" IN ( SELECT "stylists"."id"
+   FROM "public"."stylists"
+  WHERE ("stylists"."user_id" = "auth"."uid"()))));
+
+
+
+CREATE POLICY "wallet_self_select" ON "public"."wallets" FOR SELECT USING (("stylist_id" IN ( SELECT "stylists"."id"
+   FROM "public"."stylists"
+  WHERE ("stylists"."user_id" = "auth"."uid"()))));
+
 
 
 ALTER TABLE "public"."wallet_transactions" ENABLE ROW LEVEL SECURITY;
@@ -2755,6 +3050,12 @@ GRANT ALL ON FUNCTION "public"."_st_within"("geom1" "public"."geometry", "geom2"
 
 
 
+GRANT ALL ON FUNCTION "public"."activate_stylist_on_deposit"() TO "anon";
+GRANT ALL ON FUNCTION "public"."activate_stylist_on_deposit"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."activate_stylist_on_deposit"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."addauth"("text") TO "postgres";
 GRANT ALL ON FUNCTION "public"."addauth"("text") TO "anon";
 GRANT ALL ON FUNCTION "public"."addauth"("text") TO "authenticated";
@@ -2918,6 +3219,12 @@ GRANT ALL ON FUNCTION "public"."equals"("geom1" "public"."geometry", "geom2" "pu
 GRANT ALL ON FUNCTION "public"."equals"("geom1" "public"."geometry", "geom2" "public"."geometry") TO "anon";
 GRANT ALL ON FUNCTION "public"."equals"("geom1" "public"."geometry", "geom2" "public"."geometry") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."equals"("geom1" "public"."geometry", "geom2" "public"."geometry") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."expire_pending_bookings"() TO "anon";
+GRANT ALL ON FUNCTION "public"."expire_pending_bookings"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."expire_pending_bookings"() TO "service_role";
 
 
 
@@ -4232,6 +4539,12 @@ GRANT ALL ON FUNCTION "public"."postgis_wagyu_version"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."reschedule_booking"("p_booking_id" "uuid", "p_new_stylist_id" "uuid", "p_new_scheduled_at" timestamp with time zone) TO "anon";
 GRANT ALL ON FUNCTION "public"."reschedule_booking"("p_booking_id" "uuid", "p_new_stylist_id" "uuid", "p_new_scheduled_at" timestamp with time zone) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."reschedule_booking"("p_booking_id" "uuid", "p_new_stylist_id" "uuid", "p_new_scheduled_at" timestamp with time zone) TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."set_accept_deadline"() TO "anon";
+GRANT ALL ON FUNCTION "public"."set_accept_deadline"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."set_accept_deadline"() TO "service_role";
 
 
 
@@ -7468,6 +7781,24 @@ GRANT ALL ON TABLE "public"."service_categories" TO "service_role";
 GRANT ALL ON TABLE "public"."services" TO "anon";
 GRANT ALL ON TABLE "public"."services" TO "authenticated";
 GRANT ALL ON TABLE "public"."services" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."stylist_documents" TO "anon";
+GRANT ALL ON TABLE "public"."stylist_documents" TO "authenticated";
+GRANT ALL ON TABLE "public"."stylist_documents" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."stylist_payout_accounts" TO "anon";
+GRANT ALL ON TABLE "public"."stylist_payout_accounts" TO "authenticated";
+GRANT ALL ON TABLE "public"."stylist_payout_accounts" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."stylist_portfolio" TO "anon";
+GRANT ALL ON TABLE "public"."stylist_portfolio" TO "authenticated";
+GRANT ALL ON TABLE "public"."stylist_portfolio" TO "service_role";
 
 
 

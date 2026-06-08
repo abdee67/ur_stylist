@@ -21,9 +21,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ),
-      child: Center(
-        child: Text('Profile Screen'),
-      ),
+      child: Center(child: Text('Profile Screen')),
     );
   }
 }

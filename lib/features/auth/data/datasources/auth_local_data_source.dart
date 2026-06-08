@@ -13,7 +13,6 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   AuthLocalDataSourceImpl(this._prefs);
 
   @override
-
   Future<void> cacheToken(String token) {
     return _prefs.setString(_tokenKey, token);
   }

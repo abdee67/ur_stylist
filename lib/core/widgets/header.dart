@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 
 class Header extends StatelessWidget {
-  const Header({super.key, required this.theme, required this.title, required this.description});
+  const Header({
+    super.key,
+    required this.theme,
+    required this.title,
+    required this.description,
+  });
 
   final ThemeData theme;
   final String title;
   final String description;
-
 
   @override
   Widget build(BuildContext context) {

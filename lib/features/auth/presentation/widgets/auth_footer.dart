@@ -14,9 +14,12 @@ class AuthFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Text(prompt),
-      TextButton(onPressed: onPressed, child: Text(buttonText)),
-    ]);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(prompt),
+        TextButton(onPressed: onPressed, child: Text(buttonText)),
+      ],
+    );
   }
 }

@@ -117,6 +117,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<void> signOut() async {
     try {
+      if (SupabaseConfig.client.auth.currentSession == null) return;
       await SupabaseConfig.client.auth.signOut();
     } catch (e) {
       throw Exception('Failed to sign out: $e');
