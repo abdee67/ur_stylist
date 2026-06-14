@@ -1,5 +1,7 @@
+import 'dart:developer' as developer;
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path/path.dart' as p;
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -77,6 +79,7 @@ class StylistOnboardingRemoteDataSourceImpl
       email: email,
       shouldCreateUser: true,
       data: {
+        'app_role': 'stylist',
         'name': state.fullName,
         'phone': state.phone,
         'business_name': state.businessName,
@@ -88,7 +91,7 @@ class StylistOnboardingRemoteDataSourceImpl
       return null;
     }
 
-    return _upsertBasicRows(state, user.id);
+    return _upsertBasicRows(state);
   }
 
   @override
@@ -107,7 +110,10 @@ class StylistOnboardingRemoteDataSourceImpl
       throw Exception('We could not verify your email. Please try again.');
     }
 
-    final stylistId = state.stylistId ?? await _upsertBasicRows(state, user.id);
+    await _claimStylistRoleForCurrentUser();
+    await _markUserAsStylist(user, state);
+
+    final stylistId = state.stylistId ?? await _upsertBasicRows(state);
     await _client
         .from('stylists')
         .update({'onboarding_status': 'email_verified'})
@@ -118,7 +124,11 @@ class StylistOnboardingRemoteDataSourceImpl
 
   @override
   Future<void> resendOtp(String email) async {
-    await _client.auth.signInWithOtp(email: email, shouldCreateUser: true);
+    await _client.auth.signInWithOtp(
+      email: email,
+      shouldCreateUser: true,
+      data: const {'app_role': 'stylist'},
+    );
   }
 
   @override
@@ -353,26 +363,9 @@ class StylistOnboardingRemoteDataSourceImpl
     await _client.auth.signOut();
   }
 
-  Future<String> _upsertBasicRows(
-    OnboardingStateEntity state,
-    String userId,
-  ) async {
-    final name = state.fullName?.trim() ?? '';
-    final email = state.email?.trim() ?? '';
-    final phone = state.phone?.trim() ?? '';
-
-    await _client.from('users').upsert({
-      'id': userId,
-      'email': email,
-      'phone': phone,
-      'name': name,
-    }, onConflict: 'id');
-
-    final existing = await _client
-        .from('stylists')
-        .select('id')
-        .eq('user_id', userId)
-        .maybeSingle();
+  Future<String> _upsertBasicRows(OnboardingStateEntity state) async {
+    await _claimStylistRoleForCurrentUser();
+    final userId = _requireUserId();
 
     final profilePhotoUrl = state.profilePhoto == null
         ? null
@@ -383,28 +376,56 @@ class StylistOnboardingRemoteDataSourceImpl
             publicUrl: true,
           );
 
-    final payload = {
-      'user_id': userId,
-      'business_name': state.businessName?.trim(),
-      'latitude': state.latitude,
-      'longitude': state.longitude,
-      'onboarding_status': 'basic_info',
-      if (profilePhotoUrl != null) 'image_url': profilePhotoUrl,
-      'updated_at': DateTime.now().toIso8601String(),
-    };
+    final response = await _client.rpc(
+      'upsert_stylist_onboarding_profile',
+      params: {
+        'p_full_name': state.fullName?.trim(),
+        'p_email': state.email?.trim(),
+        'p_phone': state.phone?.trim(),
+        'p_business_name': state.businessName?.trim(),
+        'p_latitude': state.latitude,
+        'p_longitude': state.longitude,
+        'p_profile_image_url': profilePhotoUrl,
+      },
+    );
 
-    if (existing != null) {
-      final existingId = existing['id'].toString();
-      await _client.from('stylists').update(payload).eq('id', existingId);
-      return existingId;
+    return response.toString();
+  }
+
+  Future<void> _markUserAsStylist(
+    User user,
+    OnboardingStateEntity state,
+  ) async {
+    final metadata = Map<String, dynamic>.from(
+      user.userMetadata ?? const <String, dynamic>{},
+    );
+    metadata['app_role'] = 'stylist';
+    if (state.fullName?.trim().isNotEmpty ?? false) {
+      metadata['name'] = state.fullName!.trim();
+    }
+    if (state.phone?.trim().isNotEmpty ?? false) {
+      metadata['phone'] = state.phone!.trim();
+    }
+    if (state.businessName?.trim().isNotEmpty ?? false) {
+      metadata['business_name'] = state.businessName!.trim();
     }
 
-    final inserted = await _client
-        .from('stylists')
-        .insert(payload)
-        .select('id')
-        .single();
-    return inserted['id'].toString();
+    await _client.auth.updateUser(UserAttributes(data: metadata));
+  }
+
+  Future<void> _claimStylistRoleForCurrentUser() async {
+    try {
+      await _client.rpc('claim_stylist_role');
+    } catch (e) {
+      await _client.auth.signOut();
+      if(kDebugMode){
+        developer.log("claim_stylist_role error: ${e.toString()}");
+      }
+      throw Exception(
+        'This account cannot be used as a stylist account. Please use a '
+        'different email or sign in with the UR Beauty app.',
+      );
+    }
   }
 
   Future<String> _uploadMaybePhoto({
@@ -471,6 +492,39 @@ class StylistOnboardingRemoteDataSourceImpl
       format: CompressFormat.jpeg,
     );
     return compressed == null ? file : File(compressed.path);
+  }
+  @override
+  Future<String> checkStartupSession() async {
+    try {
+      final session = _client.auth.currentSession;
+      if (session != null) {
+        final isStylist = await isCurrentStylistAccount();
+        if (isStylist) {
+          return 'success';
+        } else {
+          await _client.auth.signOut();
+          return 'This account is not a stylist account. Please use the UR Beauty app.';
+        }
+      }
+      return 'no_session';
+    } catch (e) {
+      if (kDebugMode) {
+        developer.log("checkUserSession error: ${e.toString()}");
+      }
+      return 'Something went wrong. Please try again.';
+    }
+  }
+
+  Future<bool> isCurrentStylistAccount() async {
+    try {
+      final response = await _client.rpc('is_current_stylist');
+      return response == true;
+    } catch (e) {
+      if(kDebugMode){
+        developer.log("isCurrentStylistAccount error: ${e.toString()}");
+      }
+      return false;
+    }
   }
 
   String _requireUserId() {

@@ -87,14 +87,3 @@ class SaveSettingsPreferences {
   }
 }
 
-class SignOutSettings {
-  final SettingsRepository repository;
-  SignOutSettings(this.repository);
-  Future<Either<Failures, void>> call() => repository.signOut();
-}
-
-class DeactivateSettingsAccount {
-  final SettingsRepository repository;
-  DeactivateSettingsAccount(this.repository);
-  Future<Either<Failures, void>> call() => repository.deactivateAccount();
-}

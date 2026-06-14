@@ -196,7 +196,7 @@ class _GreetingHeaderState extends State<GreetingHeader>
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Text(
-                                  'Welcome to Urs Beauty!',
+                                  'Welcome to UR Stylist!',
                                   style: TextStyle(
                                     fontSize: 28,
                                     fontWeight: FontWeight.bold,

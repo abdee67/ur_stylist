@@ -3,6 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:ur_stylist/core/constants/app_routes.dart';
+import 'package:ur_stylist/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:ur_stylist/features/auth/presentation/bloc/auth_event.dart';
+import 'package:ur_stylist/features/auth/presentation/bloc/auth_state.dart';
 import 'package:ur_stylist/features/settings/presentation/bloc/settings_bloc.dart';
 import 'package:ur_stylist/features/settings/presentation/pages/edit_availability_page.dart';
 import 'package:ur_stylist/features/settings/presentation/pages/edit_payout_account_page.dart';
@@ -17,14 +20,11 @@ class SettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<SettingsBloc, SettingsState>(
+    return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
-        if (state.signedOut) context.go(AppRoutes.loginScreen);
-        final message = state.errorMessage ?? state.successMessage;
-        if (message != null) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(message)));
+        if (state is AuthLoggedOut) context.go(AppRoutes.loginScreen);
+        if (state is AccountDeactivated) {
+          context.go(AppRoutes.loginScreen);
         }
       },
       child: SafeArea(
@@ -130,9 +130,7 @@ class SettingsPage extends StatelessWidget {
                     icon: Iconsax.logout,
                     title: 'Sign out',
                     iconColor: Colors.black54,
-                    onTap: () => context.read<SettingsBloc>().add(
-                      const SettingsSignOutRequested(),
-                    ),
+                    onTap: () => _confirmSignOut(context),
                   ),
                   SettingsTile(
                     icon: Iconsax.profile_delete,
@@ -182,6 +180,30 @@ class SettingsPage extends StatelessWidget {
     );
     if (confirmed == true && context.mounted) {
       context.read<SettingsBloc>().add(const SettingsDeactivateRequested());
+    }
+  }
+
+  Future<void> _confirmSignOut(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Are you sure you want to sign out?'),
+        content: const Text('You will be signed out.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Sign out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      context.read<AuthBloc>().add(SignOutRequested());
+      context.go(AppRoutes.loginScreen);
     }
   }
 }

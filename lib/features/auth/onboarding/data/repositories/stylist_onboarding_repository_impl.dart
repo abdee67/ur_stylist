@@ -173,6 +173,16 @@ class StylistOnboardingRepositoryImpl implements StylistOnboardingRepository {
     }
   }
 
+  @override
+  Future<Either<Failures, String>> checkStartupSession() async {
+    try {
+      final status = await remoteDataSource.checkStartupSession();
+      return Right(status);
+    } catch (e) {
+      return Left(Failures(message: _friendlyMessage(e)));
+    }
+  }
+
   String _friendlyMessage(Object error) {
     final text = error.toString().replaceFirst('Exception: ', '');
     final lower = text.toLowerCase();

@@ -119,7 +119,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       Image.asset('assets/images/logo.png', height: 80),
                       const SizedBox(height: 10),
                       Text(
-                        'Join URS Beauty',
+                        'Join UR Stylist',
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,

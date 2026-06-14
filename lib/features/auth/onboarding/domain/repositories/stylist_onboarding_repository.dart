@@ -55,4 +55,6 @@ abstract class StylistOnboardingRepository {
   });
 
   Future<Either<Failures, void>> signOut();
+
+  Future<Either<Failures, String>> checkStartupSession();
 }

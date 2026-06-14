@@ -24,6 +24,4 @@ abstract class SettingsRemoteDataSource {
     required String accountNumber,
   });
   Future<void> updatePreferences(Map<String, dynamic> preferences);
-  Future<void> signOut();
-  Future<void> deactivateAccount();
 }

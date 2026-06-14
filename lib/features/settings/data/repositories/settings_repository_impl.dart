@@ -83,12 +83,6 @@ class SettingsRepositoryImpl implements SettingsRepository {
     return _guard(() => remoteDataSource.updatePreferences(preferences));
   }
 
-  @override
-  Future<Either<Failures, void>> signOut() => _guard(remoteDataSource.signOut);
-
-  @override
-  Future<Either<Failures, void>> deactivateAccount() =>
-      _guard(remoteDataSource.deactivateAccount);
 
   Future<Either<Failures, T>> _guard<T>(Future<T> Function() action) async {
     try {

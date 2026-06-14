@@ -17,6 +17,7 @@ abstract class AuthRemoteDataSource {
   Future<void> verifyOTP(String email, String otp);
   Future<CustomerModel> getCurrentCustomer();
   Future<void> signOut();
+    Future<void> deactivateAccount();
   Future<CustomerModel> updateCustomerProfile(CustomerModel client);
   Future<void> resetPassword(String email, String password);
   Future<void> forgotPassword(String email);

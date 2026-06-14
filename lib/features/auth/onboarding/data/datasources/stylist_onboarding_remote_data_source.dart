@@ -53,4 +53,6 @@ abstract class StylistOnboardingRemoteDataSource {
   });
 
   Future<void> signOut();
+
+  Future<String> checkStartupSession();
 }

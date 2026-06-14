@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:ur_stylist/config/supabase_config.dart';
 import 'package:ur_stylist/core/constants/app_routes.dart';
 import 'package:ur_stylist/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:ur_stylist/features/auth/presentation/bloc/auth_event.dart';
@@ -20,7 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _otpController = TextEditingController();
   bool _obscurePassword = true;
   bool _otpMode = false;
-  bool _isCheckingSession = true;
+  bool _isCheckingSession = false;
 
   @override
   void initState() {
@@ -31,16 +30,9 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _checkStartupSession() async {
     await Future<void>.delayed(Duration.zero);
     if (!mounted) return;
-
-    if (SupabaseConfig.client.auth.currentSession != null) {
-      context.go(AppRoutes.stylistOnboarding);
-      return;
-    }
-
-    setState(() {
-      _isCheckingSession = false;
-    });
+    context.read<AuthBloc>().add(CheckStartupSessionRequested());
   }
+
 
   @override
   void dispose() {
@@ -60,8 +52,15 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: Colors.pink[50],
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
-          if (state is AuthSuccess || state is OtpVerified) {
+          if (state is OtpVerified) {
             context.go(AppRoutes.stylistOnboarding);
+          }
+          if (state is AuthSuccess) {
+            context.go(AppRoutes.homeScreen);
+          } else if (state is AuthLoggedOut) {
+            setState(() {
+              _isCheckingSession = false;
+            });
           } else if (state is OtpSent) {
             setState(() {
               _otpMode = true;
@@ -79,6 +78,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 backgroundColor: Colors.red[400],
               ),
             );
+            setState(() {
+              _isCheckingSession = false;
+            });
           }
         },
         builder: (context, state) {
@@ -106,7 +108,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           const SizedBox(height: 20),
                           Text(
-                            'URS Beauty',
+                            'UR STLYIST ',
                             style: TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.bold,

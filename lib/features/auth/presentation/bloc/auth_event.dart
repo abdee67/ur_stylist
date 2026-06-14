@@ -30,6 +30,9 @@ class SignUpRequested extends AuthEvent {
 class SignOutRequested extends AuthEvent {
   SignOutRequested();
 }
+class DeactivateRequested extends AuthEvent {
+  DeactivateRequested();
+}
 
 class AutoFillCurrentLocationAddressRequested extends AuthEvent {
   AutoFillCurrentLocationAddressRequested();
@@ -60,3 +63,5 @@ class ResetPasswordRequested extends AuthEvent {
 
   ResetPasswordRequested(this.email, this.password);
 }
+
+class CheckStartupSessionRequested extends AuthEvent {}

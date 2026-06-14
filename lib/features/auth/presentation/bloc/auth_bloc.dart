@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:ur_stylist/features/auth/domain/usecases/deactivate_acc.dart';
 import 'package:ur_stylist/features/auth/domain/usecases/forgot_password.dart';
 import 'package:ur_stylist/features/auth/domain/usecases/get_current_location_address.dart';
 import 'package:ur_stylist/features/auth/domain/usecases/get_current_client.dart';
@@ -9,6 +10,7 @@ import 'package:ur_stylist/features/auth/domain/usecases/sign_out.dart';
 import 'package:ur_stylist/features/auth/domain/usecases/sign_up.dart';
 import 'package:ur_stylist/features/auth/domain/usecases/update_client_profile.dart';
 import 'package:ur_stylist/features/auth/domain/usecases/verify_otp.dart';
+import 'package:ur_stylist/features/auth/onboarding/domain/usecases/check_startup_session.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 
@@ -23,6 +25,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final UpdateCustomerProfile updateCustomerProfile;
   final ForgotPassword forgotPassword;
   final ResetPassword resetPassword;
+  final CheckStartupSession checkStartupSession;
+  final DeactivateAccount deactivateAccount;
   AuthBloc(
     this.signIn,
     this.signOut,
@@ -34,7 +38,26 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     this.updateCustomerProfile,
     this.forgotPassword,
     this.resetPassword,
+    this.checkStartupSession,
+    this.deactivateAccount,
   ) : super(AuthInitial()) {
+    on<CheckStartupSessionRequested>((event, emit) async {
+      emit(AuthLoading());
+      final result = await checkStartupSession();
+      result.fold(
+        (failure) => emit(AuthFailure(failure.message)),
+        (status) {
+          if (status == 'success') {
+            emit(AuthSuccess());
+          } else if (status == 'no_session') {
+            emit(AuthLoggedOut());
+          } else {
+            emit(AuthFailure(status));
+          }
+        },
+      );
+    });
+
     on<SignInRequested>((event, emit) async {
       emit(AuthLoading());
       final result = await signIn(event.email, event.password);
@@ -65,6 +88,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       result.fold(
         (failure) => emit(AuthFailure(failure.message)),
         (_) => emit(AuthLoggedOut()),
+      );
+    });
+    on<DeactivateRequested>((event, emit) async {
+      emit(AuthLoading());
+      final result = await deactivateAccount();
+      result.fold(
+        (failure) => emit(AuthFailure(failure.message)),
+        (_) => emit(AccountDeactivated()),
       );
     });
     on<AutoFillCurrentLocationAddressRequested>((event, emit) async {

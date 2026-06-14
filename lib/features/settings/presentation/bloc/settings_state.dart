@@ -4,7 +4,6 @@ class SettingsState extends Equatable {
   final bool isLoading;
   final bool isActionLoading;
   final StylistProfileEntity? profile;
-  final bool signedOut;
   final String? errorMessage;
   final String? successMessage;
 
@@ -12,7 +11,6 @@ class SettingsState extends Equatable {
     this.isLoading = false,
     this.isActionLoading = false,
     this.profile,
-    this.signedOut = false,
     this.errorMessage,
     this.successMessage,
   });
@@ -23,7 +21,6 @@ class SettingsState extends Equatable {
     bool? isLoading,
     bool? isActionLoading,
     StylistProfileEntity? profile,
-    bool? signedOut,
     String? errorMessage,
     String? successMessage,
     bool clearMessages = false,
@@ -32,7 +29,6 @@ class SettingsState extends Equatable {
       isLoading: isLoading ?? this.isLoading,
       isActionLoading: isActionLoading ?? this.isActionLoading,
       profile: profile ?? this.profile,
-      signedOut: signedOut ?? this.signedOut,
       errorMessage: clearMessages ? null : errorMessage ?? this.errorMessage,
       successMessage: clearMessages
           ? null
@@ -45,7 +41,6 @@ class SettingsState extends Equatable {
     isLoading,
     isActionLoading,
     profile,
-    signedOut,
     errorMessage,
     successMessage,
   ];

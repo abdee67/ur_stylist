@@ -32,6 +32,4 @@ abstract class SettingsRepository {
   Future<Either<Failures, void>> updatePreferences(
     Map<String, dynamic> preferences,
   );
-  Future<Either<Failures, void>> signOut();
-  Future<Either<Failures, void>> deactivateAccount();
 }

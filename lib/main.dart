@@ -18,13 +18,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: "assets/.env");
   await SupabaseConfig.init();
-  Stripe.publishableKey = dotenv.env['STRIPE_PUBLISHABLE_KEY']!;
   Stripe.urlScheme = 'urstylist';
-  final merchantIdentifier = dotenv.env['STRIPE_MERCHANT_IDENTIFIER'];
-  if (merchantIdentifier != null && merchantIdentifier.trim().isNotEmpty) {
-    Stripe.merchantIdentifier = merchantIdentifier.trim();
-  }
-  await Stripe.instance.applySettings();
   initDependency(); //initializing getit for dependency injection
   runApp(const URStylistApp());
 }

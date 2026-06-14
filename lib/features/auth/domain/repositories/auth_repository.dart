@@ -19,6 +19,7 @@ abstract class AuthRepository {
   Future<Either<Failures, void>> verifyOtp(String email, String otp);
   Future<Either<Failures, CustomerEntity>> getCurrentCustomer();
   Future<Either<Failures, void>> signOut();
+  Future<Either<Failures, void>> deactivateAccount();
   Future<Either<Failures, CustomerEntity>> updateCustomerProfile(
     CustomerEntity client,
   );

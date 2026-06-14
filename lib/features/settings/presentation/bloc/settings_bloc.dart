@@ -17,8 +17,6 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   final DeleteSettingsPortfolioPhoto deleteSettingsPortfolioPhoto;
   final SaveSettingsPayoutAccount saveSettingsPayoutAccount;
   final SaveSettingsPreferences saveSettingsPreferences;
-  final SignOutSettings signOutSettings;
-  final DeactivateSettingsAccount deactivateSettingsAccount;
 
   SettingsBloc(
     this.loadSettingsProfile,
@@ -28,8 +26,6 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     this.deleteSettingsPortfolioPhoto,
     this.saveSettingsPayoutAccount,
     this.saveSettingsPreferences,
-    this.signOutSettings,
-    this.deactivateSettingsAccount,
   ) : super(SettingsState.initial()) {
     on<SettingsStarted>(_onStarted);
     on<SettingsProfileSaved>(_onProfileSaved);
@@ -38,8 +34,6 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     on<SettingsPortfolioPhotoDeleted>(_onPortfolioPhotoDeleted);
     on<SettingsPayoutSaved>(_onPayoutSaved);
     on<SettingsPreferenceToggled>(_onPreferenceToggled);
-    on<SettingsSignOutRequested>(_onSignOut);
-    on<SettingsDeactivateRequested>(_onDeactivate);
   }
 
   Future<void> _onStarted(
@@ -135,28 +129,6 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
       emit,
       () => saveSettingsPreferences(preferences),
       'Preferences updated.',
-    );
-  }
-
-  Future<void> _onSignOut(
-    SettingsSignOutRequested event,
-    Emitter<SettingsState> emit,
-  ) async {
-    final result = await signOutSettings();
-    result.fold(
-      (failure) => emit(state.copyWith(errorMessage: failure.message)),
-      (_) => emit(state.copyWith(signedOut: true)),
-    );
-  }
-
-  Future<void> _onDeactivate(
-    SettingsDeactivateRequested event,
-    Emitter<SettingsState> emit,
-  ) async {
-    final result = await deactivateSettingsAccount();
-    result.fold(
-      (failure) => emit(state.copyWith(errorMessage: failure.message)),
-      (_) => emit(state.copyWith(signedOut: true)),
     );
   }
 

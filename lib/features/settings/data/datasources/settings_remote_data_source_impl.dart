@@ -195,21 +195,6 @@ class SettingsRemoteDataSourceImpl implements SettingsRemoteDataSource {
         .eq('id', stylist['id']);
   }
 
-  @override
-  Future<void> signOut() async {
-    await _client.auth.signOut();
-  }
-
-  @override
-  Future<void> deactivateAccount() async {
-    final stylist = await _stylist();
-    await _client
-        .from('stylists')
-        .update({'onboarding_status': 'suspended'})
-        .eq('id', stylist['id']);
-    await signOut();
-  }
-
   Future<File> _compress(File file) async {
     final targetPath = p.join(
       Directory.systemTemp.path,
