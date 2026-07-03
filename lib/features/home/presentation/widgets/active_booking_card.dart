@@ -15,6 +15,7 @@ class ActiveBookingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final inProgress = booking.status == BookingStatus.inProgress;
+    final confirmed = booking.status == BookingStatus.confirmed;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(18),
@@ -28,29 +29,31 @@ class ActiveBookingCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text('Client: ${booking.clientName}'),
             Text(DateFormat('EEE, MMM d • h:mm a').format(booking.scheduledAt)),
-            Text(booking.address),
             if (inProgress) ...[
+              Text(booking.cleanAddress),
               const SizedBox(height: 12),
               _Elapsed(startedAt: booking.startedAt),
             ],
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () async {
-                      final lat = booking.latitude;
-                      final lng = booking.longitude;
-                      if (lat == null || lng == null) return;
-                      await launchUrl(
-                        Uri.parse('https://maps.google.com?q=$lat,$lng'),
-                      );
-                    },
-                    icon: const Icon(Icons.directions),
-                    label: const Text('Directions'),
+                if (inProgress) ...[
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        final lat = booking.latitude;
+                        final lng = booking.longitude;
+                        if (lat == null || lng == null) return;
+                        await launchUrl(
+                          Uri.parse('https://maps.google.com?q=$lat,$lng'),
+                        );
+                      },
+                      icon: const Icon(Icons.directions),
+                      label: const Text('Directions'),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
+                  const SizedBox(width: 10),
+                ],
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () async {
@@ -79,13 +82,47 @@ class ActiveBookingCard extends StatelessWidget {
                             CompleteBookingRequested(booking.id),
                           );
                         }
-                      } else {
+                      } else if (confirmed) {
                         context.read<HomeBloc>().add(
                           StartBookingRequested(booking.id),
                         );
+                      } else {
+                        final ok = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Decline booking?'),
+                            content: const Text(
+                              "Are you sure you want to decline this booking?",
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: const Text('Cancel'),
+                              ),
+                              ElevatedButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: const Text('Decline'),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (ok == true && context.mounted) {
+                          context.read<HomeBloc>().add(
+                            DeclineBookingRequested(
+                              booking.id,
+                              'Booking declined by stylist',
+                            ),
+                          );
+                        }
                       }
                     },
-                    child: Text(inProgress ? 'Mark completed' : "I've arrived"),
+                    child: Text(
+                      inProgress
+                          ? 'Mark completed'
+                          : confirmed
+                          ? "Let's Start"
+                          : "Cancel Booking",
+                    ),
                   ),
                 ),
               ],

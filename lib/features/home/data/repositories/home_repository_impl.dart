@@ -1,4 +1,7 @@
+import 'dart:developer' as developer;
+
 import 'package:dartz/dartz.dart';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ur_stylist/core/errors/failures.dart';
 import 'package:ur_stylist/features/home/data/datasources/home_remote_data_source.dart';
@@ -57,15 +60,26 @@ class HomeRepositoryImpl implements HomeRepository {
     try {
       return Right(await action());
     } on PostgrestException catch (e) {
-      return Left(Failures(message: _mapError(e.code)));
-    } catch (_) {
-      return Left(Failures(message: 'Something went wrong. Please try again.'));
+      if (kDebugMode) {
+        developer.log('something like this happened: $e');
+      }
+      return Left(
+        Failures(message: 'Something went wrong. Please try again. $e'),
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        developer.log('something like this happened: $e');
+      }
+      return Left(
+        Failures(message: 'Something went wrong. Please try again. $e'),
+      );
     }
   }
 
   String _mapError(String? code) => switch (code) {
     '23505' => 'This record already exists',
     '42501' => "You don't have permission to do that",
+    
     _ => 'Something went wrong. Please try again.',
   };
 }

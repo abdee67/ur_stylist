@@ -59,6 +59,16 @@ class BookingEntity extends Equatable {
         deadline.isBefore(DateTime.now());
   }
 
+  //cear address(Precise Location)
+  String get cleanAddress {
+    return address
+        .replaceAll(RegExp(r'\d+'), '') // remove numbers
+        .replaceAll(RegExp(r'[^a-zA-Z\s]'), '') // remove symbols
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'\s+'), ' '); // replace multiple spaces with one
+  }
+
   @override
   List<Object?> get props => [
     id,

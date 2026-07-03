@@ -14,6 +14,7 @@ class PendingBookingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final expired = booking.isExpired;
+    final isInProgress = booking.status == BookingStatus.inProgress;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -47,7 +48,12 @@ class PendingBookingCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(DateFormat('EEE, MMM d • h:mm a').format(booking.scheduledAt)),
-            Text(booking.address, maxLines: 1, overflow: TextOverflow.ellipsis),
+            if (isInProgress)
+              Text(
+                booking.cleanAddress,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             const SizedBox(height: 8),
             Text(
               'ETB ${booking.totalAmount.toStringAsFixed(2)}',
