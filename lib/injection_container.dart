@@ -1,4 +1,5 @@
 import 'package:get_it/get_it.dart';
+import 'package:ur_stylist/api/cash/cash_payment_api_service.dart';
 import 'package:ur_stylist/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:ur_stylist/features/auth/data/datasources/auth_location_data_source.dart';
 import 'package:ur_stylist/features/auth/data/datasources/auth_location_data_source_impl.dart';
@@ -69,7 +70,7 @@ void initDependency() {
     () => AuthLocationDataSourceImpl(),
   );
   getit.registerLazySingleton<HomeRemoteDataSource>(
-    () => HomeRemoteDataSourceImpl(),
+    () => HomeRemoteDataSourceImpl(cashPaymentApiService: getit()),
   );
   getit.registerLazySingleton<WalletRemoteDataSource>(
     () => WalletRemoteDataSourceImpl(),
@@ -78,6 +79,7 @@ void initDependency() {
     () => SettingsRemoteDataSourceImpl(),
   );
 
+  getit.registerLazySingleton(() => CashPaymentApiService());
   // getit.registerLazySingleton(() => StripeApiService());
 
   //================== injecting  repository===================
@@ -128,6 +130,7 @@ void initDependency() {
   getit.registerLazySingleton(() => DeclineBooking(getit()));
   getit.registerLazySingleton(() => StartBooking(getit()));
   getit.registerLazySingleton(() => CompleteBooking(getit()));
+  getit.registerLazySingleton(() => ConfirmCashPayment(getit()));
   getit.registerLazySingleton(() => LoadWalletDashboard(getit()));
   getit.registerLazySingleton(() => SubmitDepositProof(getit()));
   getit.registerLazySingleton(() => RequestWithdrawal(getit()));
@@ -172,7 +175,8 @@ void initDependency() {
     ),
   );
   getit.registerFactory(
-    () => HomeBloc(getit(), getit(), getit(), getit(), getit(), getit()),
+    () =>
+        HomeBloc(getit(), getit(), getit(), getit(), getit(), getit(), getit()),
   );
   getit.registerFactory(() => WalletBloc(getit(), getit(), getit()));
   getit.registerFactory(

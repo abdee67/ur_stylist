@@ -11,6 +11,7 @@ abstract class HomeRemoteDataSource {
   Future<void> declineBooking(String bookingId, String? reason);
   Future<void> startBooking(String bookingId);
   Future<void> completeBooking(String bookingId);
+  Future<void> confirmCashPayment(String bookingId);
   RealtimeChannel subscribeToBookings(String stylistId, VoidCallback onChange);
 }
 

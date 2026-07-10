@@ -18,6 +18,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   final DeclineBooking declineBooking;
   final StartBooking startBooking;
   final CompleteBooking completeBooking;
+  final ConfirmCashPayment confirmCashPayment;
   final HomeRepository homeRepository;
   RealtimeChannel? _bookingsChannel;
 
@@ -27,6 +28,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     this.declineBooking,
     this.startBooking,
     this.completeBooking,
+    this.confirmCashPayment,
     this.homeRepository,
   ) : super(HomeState.initial()) {
     on<LoadHomeData>(_onLoadHomeData);
@@ -35,6 +37,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     on<DeclineBookingRequested>(_onDeclineBooking);
     on<StartBookingRequested>(_onStartBooking);
     on<CompleteBookingRequested>(_onCompleteBooking);
+    on<ConfirmCashPaymentRequested>(_onConfirmCashPayment);
     on<HomeHistoryFilterChanged>((event, emit) {
       emit(state.copyWith(historyFilter: event.filter, clearMessages: true));
     });
@@ -122,6 +125,17 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       emit,
       () => completeBooking(event.bookingId),
       'Service completed.',
+    );
+  }
+
+  Future<void> _onConfirmCashPayment(
+    ConfirmCashPaymentRequested event,
+    Emitter<HomeState> emit,
+  ) async {
+    await _runAction(
+      emit,
+      () => confirmCashPayment(event.bookingId),
+      'Cash payment confirmed. Commission was debited.',
     );
   }
 

@@ -49,6 +49,10 @@ class HomeRepositoryImpl implements HomeRepository {
       _guard(() => remoteDataSource.completeBooking(bookingId));
 
   @override
+  Future<Either<Failures, void>> confirmCashPayment(String bookingId) =>
+      _guard(() => remoteDataSource.confirmCashPayment(bookingId));
+
+  @override
   RealtimeChannel subscribeToBookings(
     String stylistId,
     void Function() onChange,
@@ -75,11 +79,4 @@ class HomeRepositoryImpl implements HomeRepository {
       );
     }
   }
-
-  String _mapError(String? code) => switch (code) {
-    '23505' => 'This record already exists',
-    '42501' => "You don't have permission to do that",
-    
-    _ => 'Something went wrong. Please try again.',
-  };
 }

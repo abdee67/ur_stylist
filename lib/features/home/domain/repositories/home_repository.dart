@@ -16,6 +16,7 @@ abstract class HomeRepository {
   );
   Future<Either<Failures, void>> startBooking(String bookingId);
   Future<Either<Failures, void>> completeBooking(String bookingId);
+  Future<Either<Failures, void>> confirmCashPayment(String bookingId);
   RealtimeChannel subscribeToBookings(
     String stylistId,
     void Function() onChange,
