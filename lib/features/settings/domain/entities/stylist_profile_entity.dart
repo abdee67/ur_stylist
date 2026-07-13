@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:ur_stylist/features/auth/onboarding/domain/entities/availability_slot.dart';
+import 'package:ur_stylist/features/onboarding/domain/entities/availability_slot.dart';
 import 'package:ur_stylist/features/wallet/domain/entities/payout_account_entity.dart';
 
 class PortfolioPhotoEntity extends Equatable {

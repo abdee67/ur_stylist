@@ -4,7 +4,7 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path/path.dart' as p;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ur_stylist/config/supabase_config.dart';
-import 'package:ur_stylist/features/auth/onboarding/domain/entities/availability_slot.dart';
+import 'package:ur_stylist/features/onboarding/domain/entities/availability_slot.dart';
 import 'package:ur_stylist/features/settings/data/datasources/settings_remote_data_source.dart';
 import 'package:ur_stylist/features/settings/data/models/stylist_profile_model.dart';
 import 'package:ur_stylist/features/settings/domain/entities/stylist_profile_entity.dart';

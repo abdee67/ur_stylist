@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:dartz/dartz.dart';
 import 'package:ur_stylist/core/errors/failures.dart';
-import 'package:ur_stylist/features/auth/onboarding/domain/entities/availability_slot.dart';
+import 'package:ur_stylist/features/onboarding/domain/entities/availability_slot.dart';
 import 'package:ur_stylist/features/settings/domain/entities/stylist_profile_entity.dart';
 
 abstract class SettingsRepository {

@@ -5,6 +5,7 @@ import 'package:ur_stylist/core/constants/app_routes.dart';
 import 'package:ur_stylist/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:ur_stylist/features/auth/presentation/bloc/auth_event.dart';
 import 'package:ur_stylist/features/auth/presentation/bloc/auth_state.dart';
+import 'package:ur_stylist/features/auth/presentation/widgets/session_checking_splash.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -45,7 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isCheckingSession) {
-      return const _SessionCheckingSplash();
+      return const SessionCheckingSplash();
     }
 
     return Scaffold(
@@ -103,7 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Column(
                         children: [
                           Image.asset(
-                            'assets/images/logo.png', // Replace with your logo
+                            'assets/images/logo.png',
                             height: 120,
                           ),
                           const SizedBox(height: 20),
@@ -332,46 +333,6 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           );
         },
-      ),
-    );
-  }
-}
-
-class _SessionCheckingSplash extends StatelessWidget {
-  const _SessionCheckingSplash();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.pink[50],
-      body: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.pink[100]!, Colors.purple[100]!],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Image.asset('assets/images/logo.png', height: 120),
-              const SizedBox(height: 28),
-              CircularProgressIndicator(color: Colors.purple[600]),
-              const SizedBox(height: 18),
-              Text(
-                'Checking your session...',
-                style: TextStyle(
-                  color: Colors.purple[800],
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:ur_stylist/features/auth/onboarding/domain/entities/availability_slot.dart';
+import 'package:ur_stylist/features/onboarding/domain/entities/availability_slot.dart';
 import 'package:ur_stylist/features/settings/domain/entities/stylist_profile_entity.dart';
 import 'package:ur_stylist/features/settings/domain/usecases/settings_usecases.dart';
 

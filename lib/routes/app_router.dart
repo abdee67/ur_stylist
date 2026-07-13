@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ur_stylist/core/constants/app_routes.dart';
 import 'package:ur_stylist/features/auth/presentation/screens/forgotPassword.dart';
-import 'package:ur_stylist/features/auth/onboarding/presentation/pages/onboarding_wrapper.dart';
+import 'package:ur_stylist/features/onboarding/presentation/pages/onboarding_wrapper.dart';
 import 'package:ur_stylist/features/auth/presentation/screens/resetPassword.dart';
 import 'package:ur_stylist/features/auth/presentation/screens/welcome_screen.dart';
 import 'package:ur_stylist/features/auth/presentation/screens/login_screen.dart';
