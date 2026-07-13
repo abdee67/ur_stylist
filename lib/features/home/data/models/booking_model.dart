@@ -21,6 +21,10 @@ class BookingModel extends BookingEntity {
     super.acceptDeadline,
     super.startedAt,
     super.completedAt,
+    super.paymentMethod,
+    super.paymentStatus,
+    super.paidAmount,
+    super.cashReceivedAt,
   });
 
   factory BookingModel.fromJson(Map<String, dynamic> json) {
@@ -79,6 +83,12 @@ class BookingModel extends BookingEntity {
       acceptDeadline: _date(json['accept_deadline']),
       startedAt: _date(json['started_at']),
       completedAt: _date(json['completed_at']),
+      paymentMethod: (json['payment_method'] ?? '').toString(),
+      paymentStatus: _paymentStatusFrom(
+        (json['payment_status'] ?? 'pending').toString(),
+      ),
+      paidAmount: double.tryParse((json['paid_amount'] ?? '').toString()),
+      cashReceivedAt: _date(json['cash_received_at']),
     );
   }
 
@@ -96,6 +106,25 @@ class BookingModel extends BookingEntity {
         return BookingStatus.missed;
       default:
         return BookingStatus.pending;
+    }
+  }
+
+  static PaymentStatus _paymentStatusFrom(String value) {
+    switch (value.toLowerCase()) {
+      case 'paid':
+        return PaymentStatus.paid;
+      case 'refunded':
+        return PaymentStatus.refunded;
+      case 'failed':
+        return PaymentStatus.failed;
+      case 'partial_refunded':
+        return PaymentStatus.partialRefunded;
+      case 'pending_verification':
+        return PaymentStatus.pendingVerification;
+      case 'disputed':
+        return PaymentStatus.disputed;
+      default:
+        return PaymentStatus.pending;
     }
   }
 

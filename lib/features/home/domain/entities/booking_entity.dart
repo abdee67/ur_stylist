@@ -9,6 +9,16 @@ enum BookingStatus {
   missed,
 }
 
+enum PaymentStatus {
+  pending,
+  paid,
+  refunded,
+  failed,
+  partialRefunded,
+  pendingVerification,
+  disputed,
+}
+
 class BookingEntity extends Equatable {
   final String id;
   final String stylistId;
@@ -29,6 +39,10 @@ class BookingEntity extends Equatable {
   final DateTime? acceptDeadline;
   final DateTime? startedAt;
   final DateTime? completedAt;
+  final String paymentMethod;
+  final PaymentStatus paymentStatus;
+  final double? paidAmount;
+  final DateTime? cashReceivedAt;
 
   const BookingEntity({
     required this.id,
@@ -50,6 +64,10 @@ class BookingEntity extends Equatable {
     this.acceptDeadline,
     this.startedAt,
     this.completedAt,
+    this.paymentMethod = '',
+    this.paymentStatus = PaymentStatus.pending,
+    this.paidAmount,
+    this.cashReceivedAt,
   });
 
   bool get isExpired {
@@ -58,6 +76,17 @@ class BookingEntity extends Equatable {
         deadline != null &&
         deadline.isBefore(DateTime.now());
   }
+
+  bool get isPaid => paymentStatus == PaymentStatus.paid;
+
+  bool get isCash => paymentMethod.toLowerCase() == 'cash';
+
+  /// Service is finished but the money has not settled yet, so the booking
+  /// still needs the stylist's attention and must not disappear into history.
+  bool get isAwaitingPayment =>
+      status == BookingStatus.completed &&
+      (paymentStatus == PaymentStatus.pending ||
+          paymentStatus == PaymentStatus.failed);
 
   //cear address(Precise Location)
   String get cleanAddress {
@@ -90,5 +119,9 @@ class BookingEntity extends Equatable {
     acceptDeadline,
     startedAt,
     completedAt,
+    paymentMethod,
+    paymentStatus,
+    paidAmount,
+    cashReceivedAt,
   ];
 }
