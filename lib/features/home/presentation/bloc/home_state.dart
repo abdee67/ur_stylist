@@ -1,5 +1,8 @@
 part of 'home_bloc.dart';
 
+enum CashVerificationMethod { qr, otp }
+
+
 class HomeState extends Equatable {
   final bool isLoading;
   final bool isActionLoading;

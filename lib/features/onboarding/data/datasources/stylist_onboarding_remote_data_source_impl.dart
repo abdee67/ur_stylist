@@ -503,7 +503,8 @@ class StylistOnboardingRemoteDataSourceImpl
         // an hour, force a fresh login instead of silently restoring the session.
         if (await SessionExpiryPolicy.hasExpiredWhileBackgrounded()) {
           await SessionExpiryPolicy.clear();
-          await _client.auth.signOut();
+          // Local scope so it works offline; we only need the session cleared.
+          await _client.auth.signOut(scope: SignOutScope.local);
           return 'no_session';
         }
         final isStylist = await isCurrentStylistAccount();

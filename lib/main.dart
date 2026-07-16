@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
@@ -56,11 +57,23 @@ class _URStylistAppState extends State<URStylistApp>
   /// [SupabaseClient.auth.signOut]. Signing out wipes the local session storage,
   /// so there is nothing to auto-log-in with on the next launch.
   void _listenForForcedLogout() {
-    _authSub = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
-      if (data.event == AuthChangeEvent.signedOut && _routerReady) {
-        _router.go(AppRoutes.loginScreen);
-      }
-    });
+    _authSub = Supabase.instance.client.auth.onAuthStateChange.listen(
+      (data) {
+        if (data.event == AuthChangeEvent.signedOut && _routerReady) {
+          _router.go(AppRoutes.loginScreen);
+        }
+      },
+      onError: (Object error) {
+        // gotrue pushes token-refresh failures onto this stream (e.g.
+        // AuthRetryableFetchException when the network is flaky as the app
+        // resumes). Without an onError handler these become unhandled
+        // exceptions that crash the app. They are transient and gotrue retries
+        // on its own, so keep the session and just log in debug.
+        if (kDebugMode) {
+          debugPrint('Auth state stream error (ignored): $error');
+        }
+      },
+    );
   }
 
   @override
@@ -87,9 +100,14 @@ class _URStylistAppState extends State<URStylistApp>
     final expired = await SessionExpiryPolicy.hasExpiredWhileBackgrounded();
     await SessionExpiryPolicy.clear();
     if (expired && auth.currentSession != null) {
-      // signOut() clears secure storage and emits signedOut, which the
-      // onAuthStateChange listener turns into a redirect to the login screen.
-      await auth.signOut();
+      // Local scope clears secure storage and emits signedOut without a network
+      // call, so it works even on a flaky connection after a long background.
+      // The onAuthStateChange listener turns signedOut into a login redirect.
+      try {
+        await auth.signOut(scope: SignOutScope.local);
+      } catch (_) {
+        // Never let a forced logout crash the resume path.
+      }
     }
   }
 
@@ -141,13 +159,15 @@ class _URStylistAppState extends State<URStylistApp>
         title: 'UR STYLIST',
         routerConfig: _router,
         theme: ThemeData(
-          primarySwatch: Colors.pink,
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Colors.pink,
-            foregroundColor: Colors.white,
-            elevation: 0,
+          primaryColor: Colors.blue,
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+          textTheme: TextTheme(
+            bodyMedium: TextStyle(fontSize: 16, height: 1.4),
+            headlineLarge: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
           ),
-          fontFamily: 'Montserrat',
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(padding: EdgeInsets.all(16)),
+          ),
         ),
       ),
     );

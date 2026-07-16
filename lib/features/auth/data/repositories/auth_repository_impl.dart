@@ -3,7 +3,6 @@ import 'dart:developer' as developer;
 import 'package:dartz/dartz.dart';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:ur_stylist/config/supabase_config.dart';
 import 'package:ur_stylist/core/errors/failures.dart';
 import 'package:ur_stylist/features/auth/data/datasources/auth_location_data_source.dart';
 import 'package:ur_stylist/features/auth/data/datasources/auth_remote_data_source.dart';
