@@ -10,7 +10,7 @@ import 'package:ur_stylist/features/auth/domain/usecases/sign_out.dart';
 import 'package:ur_stylist/features/auth/domain/usecases/sign_up.dart';
 import 'package:ur_stylist/features/auth/domain/usecases/update_client_profile.dart';
 import 'package:ur_stylist/features/auth/domain/usecases/verify_otp.dart';
-import 'package:ur_stylist/features/auth/onboarding/domain/usecases/check_startup_session.dart';
+import 'package:ur_stylist/features/onboarding/domain/usecases/check_startup_session.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 

@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:dartz/dartz.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ur_stylist/core/errors/failures.dart';
-import 'package:ur_stylist/features/auth/onboarding/domain/entities/availability_slot.dart';
+import 'package:ur_stylist/features/onboarding/domain/entities/availability_slot.dart';
 import 'package:ur_stylist/features/settings/data/datasources/settings_remote_data_source.dart';
 import 'package:ur_stylist/features/settings/domain/entities/stylist_profile_entity.dart';
 import 'package:ur_stylist/features/settings/domain/repositories/settings_repository.dart';

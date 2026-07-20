@@ -1,5 +1,8 @@
 part of 'home_bloc.dart';
 
+enum CashVerificationMethod { qr, otp }
+
+
 class HomeState extends Equatable {
   final bool isLoading;
   final bool isActionLoading;
@@ -68,11 +71,18 @@ class HomeState extends Equatable {
           .toList()
         ..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
 
+  /// Service finished but the payment is not settled yet. These stay visible
+  /// and actionable (cash confirmation) instead of dropping into history.
+  List<BookingEntity> get awaitingPaymentBookings =>
+      bookings.where((booking) => booking.isAwaitingPayment).toList()
+        ..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
+
   List<BookingEntity> get historyBookings {
     final items = bookings
         .where(
           (booking) =>
-              booking.status == BookingStatus.completed ||
+              (booking.status == BookingStatus.completed &&
+                  !booking.isAwaitingPayment) ||
               booking.status == BookingStatus.cancelled ||
               booking.status == BookingStatus.missed,
         )

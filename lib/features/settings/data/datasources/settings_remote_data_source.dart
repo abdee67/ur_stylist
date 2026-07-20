@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:ur_stylist/features/auth/onboarding/domain/entities/availability_slot.dart';
+import 'package:ur_stylist/features/onboarding/domain/entities/availability_slot.dart';
 import 'package:ur_stylist/features/settings/domain/entities/stylist_profile_entity.dart';
 
 abstract class SettingsRemoteDataSource {

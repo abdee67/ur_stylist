@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:ur_stylist/api/cash/cash_payment_api_service.dart';
 import 'package:ur_stylist/config/supabase_config.dart';
 import 'package:ur_stylist/features/home/data/datasources/home_remote_data_source.dart';
 import 'package:ur_stylist/features/home/data/models/booking_model.dart';
@@ -6,6 +7,10 @@ import 'package:ur_stylist/features/home/domain/entities/booking_entity.dart';
 import 'package:ur_stylist/features/home/domain/entities/today_summary_entity.dart';
 
 class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
+  const HomeRemoteDataSourceImpl({required this.cashPaymentApiService});
+
+  final CashPaymentApiService cashPaymentApiService;
+
   SupabaseClient get _client => SupabaseConfig.client;
 
   @override
@@ -100,7 +105,6 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
         })
         .eq('id', bookingId);
     // TODO: trigger push via FCM/Supabase Edge Function.
-        
   }
 
   @override
@@ -137,6 +141,25 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
       params: {'p_booking_id': bookingId},
     );
     // TODO: trigger push via FCM/Supabase Edge Function.
+  }
+
+  @override
+  Future<void> confirmCashPayment(String bookingId) async {
+    final booking = await _client
+        .from('bookings')
+        .select('status')
+        .eq('id', bookingId)
+        .maybeSingle();
+
+    if (booking == null) {
+      throw Exception('Booking not found.');
+    }
+
+    if (booking['status']?.toString() != 'completed') {
+      await completeBooking(bookingId);
+    }
+
+    await cashPaymentApiService.receiveCashPayment(bookingId);
   }
 
   @override

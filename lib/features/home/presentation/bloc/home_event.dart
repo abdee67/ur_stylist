@@ -44,6 +44,13 @@ class CompleteBookingRequested extends HomeEvent {
   List<Object?> get props => [bookingId];
 }
 
+class ConfirmCashPaymentRequested extends HomeEvent {
+  final String bookingId;
+  const ConfirmCashPaymentRequested(this.bookingId);
+  @override
+  List<Object?> get props => [bookingId];
+}
+
 class HomeHistoryFilterChanged extends HomeEvent {
   final String filter;
   const HomeHistoryFilterChanged(this.filter);

@@ -12,10 +12,40 @@ class ActiveBookingCard extends StatelessWidget {
 
   const ActiveBookingCard({super.key, required this.booking});
 
+  Future<void> _completeBooking(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Complete service?'),
+        content: const Text("Are you sure you've finished this service?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Complete'),
+          ),
+        ],
+      ),
+    );
+
+    if (ok != true || !context.mounted) {
+      return;
+    }
+
+    // Completing only marks the service done. Payment is settled afterwards
+    // from the "Awaiting payment" card, so cash confirmation survives
+    // back-navigation and app restarts instead of being lost mid-flow.
+    context.read<HomeBloc>().add(CompleteBookingRequested(booking.id));
+  }
+
   @override
   Widget build(BuildContext context) {
     final inProgress = booking.status == BookingStatus.inProgress;
     final confirmed = booking.status == BookingStatus.confirmed;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(18),
@@ -58,30 +88,7 @@ class ActiveBookingCard extends StatelessWidget {
                   child: ElevatedButton(
                     onPressed: () async {
                       if (inProgress) {
-                        final ok = await showDialog<bool>(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: const Text('Complete service?'),
-                            content: const Text(
-                              "Are you sure you've finished this service?",
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, false),
-                                child: const Text('Cancel'),
-                              ),
-                              ElevatedButton(
-                                onPressed: () => Navigator.pop(context, true),
-                                child: const Text('Complete'),
-                              ),
-                            ],
-                          ),
-                        );
-                        if (ok == true && context.mounted) {
-                          context.read<HomeBloc>().add(
-                            CompleteBookingRequested(booking.id),
-                          );
-                        }
+                        await _completeBooking(context);
                       } else if (confirmed) {
                         context.read<HomeBloc>().add(
                           StartBookingRequested(booking.id),

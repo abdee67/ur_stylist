@@ -1,4 +1,5 @@
 import 'package:get_it/get_it.dart';
+import 'package:ur_stylist/api/cash/cash_payment_api_service.dart';
 import 'package:ur_stylist/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:ur_stylist/features/auth/data/datasources/auth_location_data_source.dart';
 import 'package:ur_stylist/features/auth/data/datasources/auth_location_data_source_impl.dart';
@@ -18,22 +19,22 @@ import 'package:ur_stylist/features/auth/domain/usecases/sign_out.dart';
 import 'package:ur_stylist/features/auth/domain/usecases/sign_up.dart';
 import 'package:ur_stylist/features/auth/domain/usecases/update_client_profile.dart';
 import 'package:ur_stylist/features/auth/domain/usecases/verify_otp.dart';
-import 'package:ur_stylist/features/auth/onboarding/data/datasources/stylist_onboarding_remote_data_source.dart';
-import 'package:ur_stylist/features/auth/onboarding/data/datasources/stylist_onboarding_remote_data_source_impl.dart';
-import 'package:ur_stylist/features/auth/onboarding/data/repositories/stylist_onboarding_repository_impl.dart';
-import 'package:ur_stylist/features/auth/onboarding/domain/repositories/stylist_onboarding_repository.dart';
-import 'package:ur_stylist/features/auth/onboarding/domain/usecases/get_active_services.dart';
-import 'package:ur_stylist/features/auth/onboarding/domain/usecases/load_existing_onboarding.dart';
-import 'package:ur_stylist/features/auth/onboarding/domain/usecases/resend_stylist_otp.dart';
-import 'package:ur_stylist/features/auth/onboarding/domain/usecases/save_basic_info.dart';
-import 'package:ur_stylist/features/auth/onboarding/domain/usecases/save_kyc.dart';
-import 'package:ur_stylist/features/auth/onboarding/domain/usecases/save_professional_details.dart';
-import 'package:ur_stylist/features/auth/onboarding/domain/usecases/save_stylist_password.dart';
-import 'package:ur_stylist/features/auth/onboarding/domain/usecases/sign_out_stylist.dart';
-import 'package:ur_stylist/features/auth/onboarding/domain/usecases/submit_wallet.dart';
-import 'package:ur_stylist/features/auth/onboarding/domain/usecases/verify_stylist_otp.dart';
-import 'package:ur_stylist/features/auth/onboarding/domain/usecases/check_startup_session.dart';
-import 'package:ur_stylist/features/auth/onboarding/presentation/bloc/stylist_onboarding_bloc.dart';
+import 'package:ur_stylist/features/onboarding/data/datasources/stylist_onboarding_remote_data_source.dart';
+import 'package:ur_stylist/features/onboarding/data/datasources/stylist_onboarding_remote_data_source_impl.dart';
+import 'package:ur_stylist/features/onboarding/data/repositories/stylist_onboarding_repository_impl.dart';
+import 'package:ur_stylist/features/onboarding/domain/repositories/stylist_onboarding_repository.dart';
+import 'package:ur_stylist/features/onboarding/domain/usecases/get_active_services.dart';
+import 'package:ur_stylist/features/onboarding/domain/usecases/load_existing_onboarding.dart';
+import 'package:ur_stylist/features/onboarding/domain/usecases/resend_stylist_otp.dart';
+import 'package:ur_stylist/features/onboarding/domain/usecases/save_basic_info.dart';
+import 'package:ur_stylist/features/onboarding/domain/usecases/save_kyc.dart';
+import 'package:ur_stylist/features/onboarding/domain/usecases/save_professional_details.dart';
+import 'package:ur_stylist/features/onboarding/domain/usecases/save_stylist_password.dart';
+import 'package:ur_stylist/features/onboarding/domain/usecases/sign_out_stylist.dart';
+import 'package:ur_stylist/features/onboarding/domain/usecases/submit_wallet.dart';
+import 'package:ur_stylist/features/onboarding/domain/usecases/verify_stylist_otp.dart';
+import 'package:ur_stylist/features/onboarding/domain/usecases/check_startup_session.dart';
+import 'package:ur_stylist/features/onboarding/presentation/bloc/stylist_onboarding_bloc.dart';
 import 'package:ur_stylist/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:ur_stylist/features/home/data/datasources/home_remote_data_source.dart';
 import 'package:ur_stylist/features/home/data/datasources/home_remote_data_source_impl.dart';
@@ -69,7 +70,7 @@ void initDependency() {
     () => AuthLocationDataSourceImpl(),
   );
   getit.registerLazySingleton<HomeRemoteDataSource>(
-    () => HomeRemoteDataSourceImpl(),
+    () => HomeRemoteDataSourceImpl(cashPaymentApiService: getit()),
   );
   getit.registerLazySingleton<WalletRemoteDataSource>(
     () => WalletRemoteDataSourceImpl(),
@@ -78,6 +79,7 @@ void initDependency() {
     () => SettingsRemoteDataSourceImpl(),
   );
 
+  getit.registerLazySingleton(() => CashPaymentApiService());
   // getit.registerLazySingleton(() => StripeApiService());
 
   //================== injecting  repository===================
@@ -128,6 +130,7 @@ void initDependency() {
   getit.registerLazySingleton(() => DeclineBooking(getit()));
   getit.registerLazySingleton(() => StartBooking(getit()));
   getit.registerLazySingleton(() => CompleteBooking(getit()));
+  getit.registerLazySingleton(() => ConfirmCashPayment(getit()));
   getit.registerLazySingleton(() => LoadWalletDashboard(getit()));
   getit.registerLazySingleton(() => SubmitDepositProof(getit()));
   getit.registerLazySingleton(() => RequestWithdrawal(getit()));
@@ -172,7 +175,8 @@ void initDependency() {
     ),
   );
   getit.registerFactory(
-    () => HomeBloc(getit(), getit(), getit(), getit(), getit(), getit()),
+    () =>
+        HomeBloc(getit(), getit(), getit(), getit(), getit(), getit(), getit()),
   );
   getit.registerFactory(() => WalletBloc(getit(), getit(), getit()));
   getit.registerFactory(

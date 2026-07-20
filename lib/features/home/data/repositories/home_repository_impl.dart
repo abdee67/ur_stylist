@@ -49,6 +49,10 @@ class HomeRepositoryImpl implements HomeRepository {
       _guard(() => remoteDataSource.completeBooking(bookingId));
 
   @override
+  Future<Either<Failures, void>> confirmCashPayment(String bookingId) =>
+      _guard(() => remoteDataSource.confirmCashPayment(bookingId));
+
+  @override
   RealtimeChannel subscribeToBookings(
     String stylistId,
     void Function() onChange,
@@ -59,12 +63,21 @@ class HomeRepositoryImpl implements HomeRepository {
   Future<Either<Failures, T>> _guard<T>(Future<T> Function() action) async {
     try {
       return Right(await action());
+    } on Failures catch (failure) {
+      // Edge Function / API errors already carry a readable message —
+      // pass them through instead of wrapping ("Instance of 'Failures'").
+      if (kDebugMode) {
+        developer.log('something like this happened: ${failure.message}');
+      }
+      return Left(failure);
     } on PostgrestException catch (e) {
       if (kDebugMode) {
-        developer.log('something like this happened: $e');
+        developer.log('something like this happened: ${e.message}');
       }
       return Left(
-        Failures(message: 'Something went wrong. Please try again. $e'),
+        Failures(
+          message: 'Something went wrong. Please try again. ${e.message}',
+        ),
       );
     } catch (e) {
       if (kDebugMode) {
@@ -75,11 +88,4 @@ class HomeRepositoryImpl implements HomeRepository {
       );
     }
   }
-
-  String _mapError(String? code) => switch (code) {
-    '23505' => 'This record already exists',
-    '42501' => "You don't have permission to do that",
-    
-    _ => 'Something went wrong. Please try again.',
-  };
 }

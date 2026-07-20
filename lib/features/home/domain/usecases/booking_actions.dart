@@ -33,3 +33,11 @@ class CompleteBooking {
     return repository.completeBooking(bookingId);
   }
 }
+
+class ConfirmCashPayment {
+  final HomeRepository repository;
+  ConfirmCashPayment(this.repository);
+  Future<Either<Failures, void>> call(String bookingId) {
+    return repository.confirmCashPayment(bookingId);
+  }
+}
